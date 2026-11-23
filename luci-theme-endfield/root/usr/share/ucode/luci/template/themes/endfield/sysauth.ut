@@ -11,13 +11,15 @@
 {% include('header', { blank_page: true }) %}
 
 <section class="ef-login-screen active" id="ef-login-screen">
-	<div class="ef-login-watermark" aria-hidden="true">// ENDFIELD</div>
+	<div class="ef-login-watermark ef-only-light" aria-hidden="true">// TALOS-II</div>
+	<div class="ef-login-watermark ef-only-dark" aria-hidden="true">// DIJIANG</div>
 
 	<div class="ef-login-topbar">
 		<div class="ef-login-coord">
-			<span class="ef-crumb-tag">[ AUTH // 00 ]</span>
+			<span class="ef-crumb-tag">[ PROTOSYNC // AUTH-00 ]</span>
 			<span>{{ hostname }}</span>
-			<span>{{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }}</span>
+			<span class="ef-only-light">TALOS-II SURFACE GRID</span>
+			<span class="ef-only-dark">OMV DIJIANG ORBITAL HUD</span>
 		</div>
 		<button type="button" class="ef-mode-toggle" id="ef-login-mode-toggle" title="Toggle Dark / Light Mode">
 			<svg data-mode-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -30,11 +32,11 @@
 		<div class="ef-login-monolith">
 			<div class="ef-login-head">
 				<div class="ef-login-tier-1">
-					<span>// ENDFIELD GATEWAY PROTOCOL</span>
+					<span>// ENDFIELD INDUSTRIES · PROTOCOL ACCESS</span>
 					<span class="ef-dot-matrix" aria-hidden="true"></span>
 				</div>
 				<div class="ef-login-tier-2">
-					<span class="ef-arrow-badge">↘ {{ _('AUTHORIZATION REQUIRED') }}</span>
+					<span class="ef-arrow-badge">↘ {{ _('ENDMINISTRATOR AUTHORIZATION') }}</span>
 				</div>
 				<div class="ef-login-tier-3">
 					<div class="ef-login-emblem" aria-hidden="true">
@@ -46,7 +48,7 @@
 					</div>
 					<div class="ef-login-identity">
 						<h1 class="ef-login-title">{{ hostname }}</h1>
-						<div class="ef-login-sub">{{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }}</div>
+						<div class="ef-login-sub">{{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }} // PAC TERMINAL</div>
 					</div>
 				</div>
 			</div>
@@ -62,7 +64,7 @@
 				<div class="ef-field-group">
 					<label class="ef-field-label" for="luci_username">
 						<span>{{ _('Username') }}</span>
-						<span>OPERATOR</span>
+						<span>ENDMINISTRATOR</span>
 					</label>
 					<input name="luci_username" id="luci_username" type="text" class="ef-mono" autocomplete="username" value="{{ entityencode(duser, true) }}">
 				</div>
@@ -70,7 +72,7 @@
 				<div class="ef-field-group">
 					<label class="ef-field-label" for="luci_password">
 						<span>{{ _('Password') }}</span>
-						<span>ACCESS KEY</span>
+						<span>PROTOCOL KEY</span>
 					</label>
 					<div class="ef-pass-wrap">
 						<input name="luci_password" id="luci_password" type="password" autocomplete="current-password">
@@ -82,14 +84,14 @@
 			</form>
 
 			<div class="ef-login-meta-bar">
-				<span>{{ striptags(version.luciname ?? 'LuCI') }}</span>
+				<span>{{ striptags(version.luciname ?? 'LuCI') }} // PAC</span>
 				<span>SYSAUTH // {{ striptags(version.distversion ?? '25.12') }}</span>
 			</div>
 		</div>
 	</div>
 
 	<div class="ef-login-bottom">
-		<span>{{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }}</span>
+		<span>ENDFIELD INDUSTRIES // {{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }}</span>
 		<span>LUCI-THEME-ENDFIELD</span>
 	</div>
 </section>

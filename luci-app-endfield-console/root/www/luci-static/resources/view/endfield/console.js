@@ -118,21 +118,181 @@ var SERVICE_ALIASES = {
 	ddns: ['ddns'],
 	sqm: ['sqm'],
 	smartdns: ['smartdns'],
+	mosdns: ['mosdns'],
 	aria2: ['aria2'],
 	transmission: ['transmission'],
 	ttyd: ['ttyd'],
 	acme: ['acme'],
 	zerotier: ['zerotier'],
 	frp: ['frpc', 'frps'],
-	minidlna: ['minidlna']
+	minidlna: ['minidlna'],
+	cloudflared: ['cloudflared']
 };
+
+var CORE_DAEMON_CATALOG = [
+	{ key: 'adguardhome', title: 'AdGuard Home', category: 'DNS // AIC' },
+	{ key: 'tailscale', title: 'Tailscale', category: 'TP // MESH' },
+	{ key: 'zerotier', title: 'ZeroTier', category: 'TP // MESH' },
+	{ key: 'dockerd', title: 'Docker Engine', category: 'AIC // RUNTIME' },
+	{ key: 'smartdns', title: 'SmartDNS', category: 'DNS // AIC' },
+	{ key: 'mosdns', title: 'MosDNS', category: 'DNS // AIC' },
+	{ key: 'sqm', title: 'SQM QoS', category: 'RELAY // QOS' },
+	{ key: 'samba4', title: 'SMB Depot', category: 'DEPOT // SMB' },
+	{ key: 'ksmbd', title: 'KSMBD Depot', category: 'DEPOT // SMB' },
+	{ key: 'cloudflared', title: 'Cloudflare Tunnel', category: 'TP // TUNNEL' },
+	{ key: 'sing-box', title: 'sing-box', category: 'TP // PROXY' },
+	{ key: 'mihomo', title: 'Mihomo', category: 'TP // PROXY' },
+	{ key: 'dae', title: 'dae', category: 'TP // PROXY' },
+	{ key: 'daed', title: 'daed', category: 'TP // PROXY' },
+	{ key: 'ttyd', title: 'Web Terminal', category: 'OPS // TTY' },
+	{ key: 'frpc', title: 'FRP Client', category: 'TP // TUNNEL' },
+	{ key: 'frps', title: 'FRP Server', category: 'TP // TUNNEL' },
+	{ key: 'aria2', title: 'Aria2', category: 'DEPOT // SYNC' },
+	{ key: 'transmission', title: 'Transmission', category: 'DEPOT // SYNC' },
+	{ key: 'acme', title: 'ACME Certs', category: 'SEC // TLS' }
+];
+
+function resolveProtocolUnit(board, sysInfo) {
+	var b = board || {};
+	var release = b.release || {};
+	var rawModel = String(b.model || '').trim();
+	var rawSystem = String(b.system || '').trim();
+	var target = String(release.target || '').trim();
+	var boardName = String(b.board_name || '').trim();
+
+	var rawSummary = [rawModel, rawSystem, target].filter(Boolean).join(' · ');
+
+	var combined = (rawModel + ' ' + boardName + ' ' + rawSystem).toLowerCase();
+	var isVm = /(qemu|kvm|vmware|virtualbox|hyper-v|xen|bochs|standard pc|virtual machine|virtio)/i.test(combined);
+
+	var pacClass = 'PAC-01';
+	if (isVm) pacClass = 'PAC-VM';
+	else if (/^x86\/64/i.test(target)) pacClass = 'PAC-X64';
+	else if (/^x86/i.test(target)) pacClass = 'PAC-X86';
+	else if (/(mediatek|filogic)/i.test(target)) pacClass = 'PAC-MTK';
+	else if (/rockchip/i.test(target)) pacClass = 'PAC-RK';
+	else if (/(qualcomm|ipq)/i.test(target)) pacClass = 'PAC-IPQ';
+	else if (/(bcm|armsr|armvirt|mvebu|sunxi)/i.test(target)) pacClass = 'PAC-ARM';
+
+	var cleanedModel = rawModel
+		.replace(/\bto\s+be\s+filled\s+by\s+o\.?e\.?m\.?\b/gi, '')
+		.replace(/\bdefault\s+string\b/gi, '')
+		.replace(/\bsystem\s+(?:product\s+name|manufacturer|version)\b/gi, '')
+		.replace(/\bnot\s+specified\b/gi, '')
+		.replace(/\bstandard\s+pc\b.*$/gi, '')
+		.replace(/\b(?:o\.e\.m\.|oem)\b/gi, '')
+		.replace(/^[\s\-_/:,.]+|[\s\-_/:,.]+$/g, '')
+		.replace(/\s{2,}/g, ' ');
+
+	var isGenericModel = !cleanedModel ||
+		/^(?:none|unknown|generic|default|router(?:[-_\s]?\d+g)?|soft[-_\s]?router|x86(?:[/_-]?64)?|mini[-_\s]?pc|pc|desktop|board|mainboard|motherboard|virtual(?:\s+machine)?|intel|amd)$/i.test(cleanedModel);
+
+	var cleanCpu = rawSystem
+		.replace(/\(R\)|\(TM\)|\(C\)/gi, '')
+		.replace(/\b(?:CPU|Processor)\b/gi, '')
+		.replace(/@\s*[\d.]+\s*[GM]Hz/gi, '')
+		.replace(/\bwith\s+Radeon.*$/gi, '')
+		.replace(/\brev\s+\d+.*$/gi, '')
+		.replace(/\s{2,}/g, ' ')
+		.trim();
+	if (/^(?:unknown|generic|\?|-)$/i.test(cleanCpu))
+		cleanCpu = '';
+
+	var display;
+	if (!isGenericModel && !isVm) {
+		display = 'PAC // ' + cleanedModel;
+	} else if (cleanCpu) {
+		display = pacClass + ' // ' + cleanCpu;
+	} else if (target) {
+		display = pacClass + ' // ' + target.toUpperCase();
+	} else {
+		display = pacClass + ' // TALOS-II';
+	}
+
+	return {
+		display: display,
+		rawTitle: rawSummary ? ('Raw DMI: ' + rawSummary) : display
+	};
+}
+
+function classifyMountRole(mountPath) {
+	if (mountPath === '/' || mountPath === '/overlay') return 'CORE OVERLAY';
+	if (mountPath === '/boot') return 'BOOT LOADER';
+	if (mountPath === '/tmp') return 'VOLATILE RAM';
+	if (/^\/(?:mnt|data|opt|srv|media|vol)/i.test(mountPath)) return 'EXT DEPOT';
+	return 'VOLUME';
+}
+
+function classifyIfaceRole(ifaceName, proto) {
+	var n = String(ifaceName || '').toLowerCase();
+	var p = String(proto || '').toLowerCase();
+	if (/^wan/.test(n)) return 'UPLINK';
+	if (/^lan/.test(n)) return 'GRID';
+	if (/(tailscale|wireguard|^wg|vpn|zerotier|tun)/.test(n) || /(wireguard|tailscale|openvpn)/.test(p)) return 'TUNNEL';
+	return '';
+}
+
+function netmaskToPrefix(mask) {
+	if (mask == null || mask === '') return null;
+	if (typeof mask === 'number' && isFinite(mask)) return String(mask);
+	var s = String(mask).trim();
+	if (/^\d+$/.test(s)) return s;
+	if (/^\d+\.\d+\.\d+\.\d+$/.test(s)) {
+		var bits4 = 0;
+		var parts4 = s.split('.');
+		for (var i = 0; i < 4; i++) {
+			var oct = parseInt(parts4[i], 10);
+			if (!isFinite(oct) || oct < 0 || oct > 255) return null;
+			while (oct > 0) { bits4 += (oct & 1); oct >>= 1; }
+		}
+		return String(bits4);
+	}
+	if (s.indexOf(':') !== -1) {
+		var bits6 = 0;
+		var segs = s.split(':');
+		for (var j = 0; j < segs.length; j++) {
+			if (!segs[j]) continue;
+			var v = parseInt(segs[j], 16);
+			if (!isFinite(v)) return null;
+			while (v > 0) { bits6 += (v & 1); v >>= 1; }
+		}
+		return String(bits6);
+	}
+	return null;
+}
+
+function buildPacWatermarkSvg() {
+	return svgEl('svg', {
+		'class': 'efc-hero-reticle',
+		'viewBox': '0 0 180 180',
+		'fill': 'none',
+		'aria-hidden': 'true'
+	}, [
+		svgEl('polygon', {
+			'points': '90,10 159,50 159,130 90,170 21,130 21,50',
+			'stroke': 'currentColor', 'stroke-width': '1.2'
+		}),
+		svgEl('polygon', {
+			'points': '90,34 138,62 138,118 90,146 42,118 42,62',
+			'stroke': 'currentColor', 'stroke-width': '1', 'stroke-dasharray': '4 4'
+		}),
+		svgEl('polygon', {
+			'points': '90,62 114,76 114,104 90,118 66,104 66,76',
+			'stroke': 'currentColor', 'stroke-width': '1.4'
+		}),
+		svgEl('line', { 'x1': '90', 'y1': '2', 'x2': '90', 'y2': '34', 'stroke': 'currentColor', 'stroke-width': '1' }),
+		svgEl('line', { 'x1': '90', 'y1': '146', 'x2': '90', 'y2': '178', 'stroke': 'currentColor', 'stroke-width': '1' }),
+		svgEl('line', { 'x1': '6', 'y1': '90', 'x2': '42', 'y2': '90', 'stroke': 'currentColor', 'stroke-width': '1' }),
+		svgEl('line', { 'x1': '138', 'y1': '90', 'x2': '174', 'y2': '90', 'stroke': 'currentColor', 'stroke-width': '1' })
+	]);
+}
 
 function ensureConsoleStylesheet() {
 	if (document.querySelector('link[data-ef-console-css="1"], link[href*="endfield/console.css"]'))
 		return;
 	var link = document.createElement('link');
 	link.rel = 'stylesheet';
-	link.href = '/luci-static/endfield/console.css?v=25.12-ef21';
+	link.href = '/luci-static/endfield/console.css?v=25.12-ef30';
 	link.setAttribute('data-ef-console-css', '1');
 	document.head.appendChild(link);
 }
@@ -486,7 +646,8 @@ function buildMenuIndex(tree) {
 
 	return {
 		quickOps: quickOps,
-		apps: apps
+		apps: apps,
+		startupUrl: paths['admin/system/startup'] ? L.url('admin', 'system', 'startup') : null
 	};
 }
 
@@ -520,16 +681,16 @@ function resolveServiceState(appName, rcMap, initMap) {
 	var rcEntry = lookupServiceEntry(rcMap, candidates, key);
 	if (rcEntry && typeof rcEntry.running === 'boolean') {
 		return rcEntry.running
-			? { state: 'running', label: 'RUNNING' }
-			: { state: 'stopped', label: 'STOPPED' };
+			? { state: 'running', label: 'ONLINE' }
+			: { state: 'stopped', label: 'STANDBY' };
 	}
 
 	var initEntry = lookupServiceEntry(initMap, candidates, key);
 	if (initEntry) {
 		if (typeof initEntry.started === 'boolean') {
 			return initEntry.started
-				? { state: 'running', label: 'RUNNING' }
-				: { state: 'stopped', label: 'STOPPED' };
+				? { state: 'running', label: 'ONLINE' }
+				: { state: 'stopped', label: 'STANDBY' };
 		}
 		return initEntry.enabled
 			? { state: 'enabled', label: 'ENABLED' }
@@ -537,6 +698,36 @@ function resolveServiceState(appName, rcMap, initMap) {
 	}
 
 	return { state: null, label: 'READY' };
+}
+
+function collectMergedModules(menuApps, rcMap, initMap, startupUrl) {
+	var list = (menuApps || []).slice();
+	var covered = {};
+
+	list.forEach(function(app) {
+		var key = String(app.name || '').toLowerCase();
+		if (key) covered[key] = true;
+		if (SERVICE_ALIASES[key]) {
+			SERVICE_ALIASES[key].forEach(function(a) { covered[a] = true; });
+		}
+	});
+
+	CORE_DAEMON_CATALOG.forEach(function(spec) {
+		if (covered[spec.key]) return;
+		var hasRc = rcMap && rcMap[spec.key];
+		var hasInit = initMap && initMap[spec.key];
+		if (!hasRc && !hasInit) return;
+		covered[spec.key] = true;
+		list.push({
+			category: spec.category,
+			name: spec.key,
+			title: spec.title,
+			url: startupUrl || null,
+			isDaemon: true
+		});
+	});
+
+	return list;
 }
 
 function resolveWanSummary(ifaces, devices) {
@@ -957,6 +1148,7 @@ return view.extend({
 
 		var menuIndex = buildMenuIndex(menuTree);
 		this.menuApps = menuIndex.apps;
+		this.startupUrl = menuIndex.startupUrl;
 		this.clientSearchQuery = '';
 		this.clientFilterMode = 'dhcp';
 
@@ -967,8 +1159,8 @@ return view.extend({
 		var hostname = board.hostname || 'OpenWrt';
 		var release = board.release || {};
 		var fwStr = [release.distribution || 'OpenWrt', release.version || ''].filter(Boolean).join(' ');
-		var modelStr = board.model || board.system || release.target || _('Generic Router');
-		var kernelStr = board.kernel || '-';
+		var unitInfo = resolveProtocolUnit(board, sysInfo);
+		var kernelStr = [board.kernel || '-', release.target || ''].filter(Boolean).join(' · ');
 
 		this.els = {};
 
@@ -981,50 +1173,61 @@ return view.extend({
 		});
 
 		this.els.uptimeChip = E('span', { 'class': 'efc-spec-value' }, [formatUptime(sysInfo.uptime)]);
+		this.els.heroStatusBadge = E('span', { 'class': 'efc-online-badge' }, [
+			E('span', { 'class': 'efc-online-dot' }),
+			'[ PROTOSYNC · ONLINE ]'
+		]);
 
 		var heroEl = E('section', { 'class': 'efc-hero' }, [
 			E('div', { 'class': 'efc-hero-spectrum' }),
-			E('div', { 'class': 'efc-hero-watermark', 'aria-hidden': 'true' }, ['// ENDFIELD']),
+			buildPacWatermarkSvg(),
+			E('div', { 'class': 'efc-hero-watermark ef-only-light', 'aria-hidden': 'true' }, ['// TALOS-II']),
+			E('div', { 'class': 'efc-hero-watermark ef-only-dark', 'aria-hidden': 'true' }, ['// DIJIANG']),
 			E('div', { 'class': 'efc-hero-top' }, [
 				E('div', { 'class': 'efc-hero-titles' }, [
 					E('div', { 'class': 'efc-eyebrow-row' }, [
-						E('span', { 'class': 'efc-eyebrow' }, ['// ENDFIELD GATEWAY PROTOCOL']),
+						E('span', { 'class': 'efc-eyebrow ef-only-light' }, ['// ENDFIELD INDUSTRIES · TALOS-II SURFACE GRID']),
+						E('span', { 'class': 'efc-eyebrow ef-only-dark' }, ['// ENDFIELD INDUSTRIES · OMV DIJIANG ORBITAL HUD']),
 						createDotMatrix()
 					]),
-					E('span', { 'class': 'efc-console-pill' }, ['↘ CONSOLE']),
+					E('span', { 'class': 'efc-console-pill' }, ['↘ PAC // COMMAND CONSOLE']),
 					E('div', { 'class': 'efc-hostname-row' }, [
 						E('h2', { 'class': 'efc-hostname' }, [hostname]),
-						E('span', { 'class': 'efc-online-badge' }, [
-							E('span', { 'class': 'efc-online-dot' }),
-							'[ ONLINE ]'
-						])
+						this.els.heroStatusBadge
 					])
 				]),
-				E('div', { 'class': 'efc-poll-pill' }, [
-					E('span', { 'class': 'efc-online-dot' }),
-					E('span', {}, ['TELEMETRY // ' + POLL_SECONDS + 'S'])
+				E('div', { 'class': 'efc-hero-pills' }, [
+					E('div', { 'class': 'efc-sector-pill' }, [
+						E('span', { 'class': 'efc-sector-pip' }),
+						E('span', { 'class': 'ef-only-light' }, ['SECTOR // TALOS-II']),
+						E('span', { 'class': 'ef-only-dark' }, ['ORBIT // OMV DIJIANG'])
+					]),
+					E('div', { 'class': 'efc-poll-pill' }, [
+						E('span', { 'class': 'efc-online-dot' }),
+						E('span', {}, ['PROTOSYNC // ' + POLL_SECONDS + 'S'])
+					])
 				])
 			]),
 			E('div', { 'class': 'efc-spec-chips' }, [
 				E('div', { 'class': 'efc-spec-chip' }, [
-					E('span', { 'class': 'efc-spec-label' }, ['MODEL']),
-					E('span', { 'class': 'efc-spec-value', 'title': modelStr }, [modelStr])
+					E('span', { 'class': 'efc-spec-label' }, ['PROTOCOL CORE']),
+					E('span', { 'class': 'efc-spec-value', 'title': unitInfo.rawTitle }, [unitInfo.display])
 				]),
 				E('div', { 'class': 'efc-spec-chip' }, [
-					E('span', { 'class': 'efc-spec-label' }, ['FIRMWARE']),
+					E('span', { 'class': 'efc-spec-label' }, ['OS PROTOCOL']),
 					E('span', { 'class': 'efc-spec-value', 'title': release.revision ? (fwStr + ' (' + release.revision + ')') : fwStr }, [fwStr])
 				]),
 				E('div', { 'class': 'efc-spec-chip' }, [
-					E('span', { 'class': 'efc-spec-label' }, ['KERNEL']),
+					E('span', { 'class': 'efc-spec-label' }, ['KERNEL // ARCH']),
 					E('span', { 'class': 'efc-spec-value', 'title': kernelStr }, [kernelStr])
 				]),
 				E('div', { 'class': 'efc-spec-chip' }, [
-					E('span', { 'class': 'efc-spec-label' }, ['UPTIME']),
+					E('span', { 'class': 'efc-spec-label' }, ['SYNC UPTIME']),
 					this.els.uptimeChip
 				])
 			]),
 			opButtons.length ? E('div', { 'class': 'efc-quick-ops' }, [
-				E('span', { 'class': 'efc-quick-label' }, ['QUICK OPS //'])
+				E('span', { 'class': 'efc-quick-label' }, ['DIRECTIVES //'])
 			].concat(opButtons)) : E([])
 		]);
 
@@ -1053,7 +1256,7 @@ return view.extend({
 		var kpiGrid = E('section', { 'class': 'efc-kpi-grid' }, [
 			E('div', { 'class': 'efc-kpi-card' }, [
 				E('div', { 'class': 'efc-kpi-head' }, [
-					E('span', { 'class': 'efc-kpi-code' }, ['01 // CPU & LOAD']),
+					E('span', { 'class': 'efc-kpi-code' }, ['01 // CORE OUTPUT']),
 					this.els.cpuBadge
 				]),
 				E('div', { 'class': 'efc-kpi-main' }, [this.els.cpuVal]),
@@ -1062,7 +1265,7 @@ return view.extend({
 			]),
 			E('div', { 'class': 'efc-kpi-card' }, [
 				E('div', { 'class': 'efc-kpi-head' }, [
-					E('span', { 'class': 'efc-kpi-code' }, ['02 // MEMORY']),
+					E('span', { 'class': 'efc-kpi-code' }, ['02 // MEMORY BUFFER']),
 					this.els.memBadge
 				]),
 				E('div', { 'class': 'efc-kpi-main' }, [this.els.memVal]),
@@ -1071,7 +1274,7 @@ return view.extend({
 			]),
 			E('div', { 'class': 'efc-kpi-card' }, [
 				E('div', { 'class': 'efc-kpi-head' }, [
-					E('span', { 'class': 'efc-kpi-code' }, ['03 // WAN UPLINK']),
+					E('span', { 'class': 'efc-kpi-code' }, ['03 // TELE-PROTOCOL']),
 					this.els.wanBadge
 				]),
 				E('div', { 'class': 'efc-wan-rates' }, [
@@ -1089,7 +1292,7 @@ return view.extend({
 			]),
 			E('div', { 'class': 'efc-kpi-card' }, [
 				E('div', { 'class': 'efc-kpi-head' }, [
-					E('span', { 'class': 'efc-kpi-code' }, ['04 // ACTIVE NODES']),
+					E('span', { 'class': 'efc-kpi-code' }, ['04 // PROTOCOL NODES']),
 					this.els.nodesBadge
 				]),
 				E('div', { 'class': 'efc-kpi-main' }, [this.els.nodesVal]),
@@ -1099,24 +1302,24 @@ return view.extend({
 						this.els.nodesLeaseVal
 					]),
 					E('div', { 'class': 'efc-node-stat' }, [
-						E('span', {}, ['CONNTRACK']),
+						E('span', {}, ['FLOW TRACK']),
 						this.els.nodesCtVal
 					])
 				]),
-				E('div', { 'class': 'efc-kpi-sub' }, [_('Live LAN & flow telemetry')])
+				E('div', { 'class': 'efc-kpi-sub' }, [_('Active Talos-II subnet terminals')])
 			])
 		]);
 
-		// --- 3. Physical Ports & Logical Interfaces Panel ---
+		// --- 3. Physical Relays & Protocol Interfaces Panel ---
 		this.els.portsStrip = E('div', { 'class': 'efc-ports-strip' });
 		this.els.ifacesGrid = E('div', { 'class': 'efc-ifaces-grid' });
-		this.els.netMeta = E('span', { 'class': 'efc-panel-meta' }, ['0 PORTS · 0 IFACES']);
+		this.els.netMeta = E('span', { 'class': 'efc-panel-meta' }, ['0 RELAYS · 0 INTERFACES']);
 
 		var netPanel = E('section', { 'class': 'efc-panel' }, [
 			E('div', { 'class': 'efc-panel-head' }, [
 				E('div', { 'class': 'efc-panel-title-wrap' }, [
-					E('span', { 'class': 'efc-panel-code' }, ['NET //']),
-					E('h3', { 'class': 'efc-panel-title' }, [_('Physical Ports & Logical Interfaces')])
+					E('span', { 'class': 'efc-panel-code' }, ['RELAY //']),
+					E('h3', { 'class': 'efc-panel-title' }, [_('Physical Relays & Protocol Interfaces')])
 				]),
 				this.els.netMeta
 			]),
@@ -1124,18 +1327,18 @@ return view.extend({
 			this.els.ifacesGrid
 		]);
 
-		// --- 4. Installed Services Quick-Launch Dock + Storage Mounts ---
+		// --- 4. AIC Protocol Modules Dock + Depot Storage ---
 		this.els.appsGrid = E('div', { 'class': 'efc-apps-grid' });
 		this.els.appsMeta = E('span', { 'class': 'efc-panel-meta' }, ['0 MODULES']);
 		this.els.mountsList = E('div', { 'class': 'efc-mounts-list' });
-		this.els.mountsMeta = E('span', { 'class': 'efc-panel-meta' }, ['0 MOUNTS']);
+		this.els.mountsMeta = E('span', { 'class': 'efc-panel-meta' }, ['0 VOLUMES']);
 
 		var dockSection = E('section', { 'class': 'efc-two-col' }, [
 			E('div', { 'class': 'efc-panel' }, [
 				E('div', { 'class': 'efc-panel-head' }, [
 					E('div', { 'class': 'efc-panel-title-wrap' }, [
-						E('span', { 'class': 'efc-panel-code' }, ['DOCK //']),
-						E('h3', { 'class': 'efc-panel-title' }, [_('Installed Services & Apps')])
+						E('span', { 'class': 'efc-panel-code' }, ['AIC //']),
+						E('h3', { 'class': 'efc-panel-title' }, [_('Protocol Modules & Services')])
 					]),
 					this.els.appsMeta
 				]),
@@ -1144,8 +1347,8 @@ return view.extend({
 			E('div', { 'class': 'efc-panel' }, [
 				E('div', { 'class': 'efc-panel-head' }, [
 					E('div', { 'class': 'efc-panel-title-wrap' }, [
-						E('span', { 'class': 'efc-panel-code' }, ['DISK //']),
-						E('h3', { 'class': 'efc-panel-title' }, [_('Storage Mounts')])
+						E('span', { 'class': 'efc-panel-code' }, ['DEPOT //']),
+						E('h3', { 'class': 'efc-panel-title' }, [_('Protocol Storage Volumes')])
 					]),
 					this.els.mountsMeta
 				]),
@@ -1153,13 +1356,13 @@ return view.extend({
 			])
 		]);
 
-		// --- 5. Live Active LAN Clients Table ---
+		// --- 5. Live Field Terminal Roster ---
 		var self = this;
 		this.els.searchInput = E('input', {
 			'type': 'search',
 			'class': 'efc-search-input',
-			'placeholder': _('Filter hostname, IP or MAC…'),
-			'aria-label': _('Filter active LAN clients')
+			'placeholder': _('Search callsign, IP or MAC…'),
+			'aria-label': _('Filter active terminals')
 		});
 		this.els.searchInput.addEventListener('input', function() {
 			self.clientSearchQuery = (self.els.searchInput.value || '').trim().toLowerCase();
@@ -1181,8 +1384,8 @@ return view.extend({
 		var clientsPanel = E('section', { 'class': 'efc-panel' }, [
 			E('div', { 'class': 'efc-panel-head' }, [
 				E('div', { 'class': 'efc-panel-title-wrap' }, [
-					E('span', { 'class': 'efc-panel-code' }, ['LAN //']),
-					E('h3', { 'class': 'efc-panel-title' }, [_('Active LAN Clients')]),
+					E('span', { 'class': 'efc-panel-code' }, ['FIELD //']),
+					E('h3', { 'class': 'efc-panel-title' }, [_('Active Terminal Roster')]),
 					this.els.clientsMeta
 				]),
 				E('div', { 'class': 'efc-clients-toolbar' }, [
@@ -1194,11 +1397,11 @@ return view.extend({
 				E('table', { 'class': 'efc-table' }, [
 					E('thead', {}, [
 						E('tr', {}, [
-							E('th', {}, [_('Hostname')]),
+							E('th', {}, [_('Callsign / Hostname')]),
 							E('th', {}, [_('IPv4 Address')]),
 							E('th', {}, [_('IPv6 Address')]),
 							E('th', {}, [_('MAC Address')]),
-							E('th', {}, [_('Lease Remaining')])
+							E('th', {}, [_('Sync Lease')])
 						])
 					]),
 					this.els.clientsTbody
@@ -1359,6 +1562,13 @@ return view.extend({
 
 		this.els.wanBadge.setAttribute('data-tone', wan.up ? 'ok' : 'warn');
 		dom.content(this.els.wanBadge, (wan.devName || wan.ifaceName).toUpperCase() + (wan.up ? '' : ' OFF'));
+		if (this.els.heroStatusBadge) {
+			this.els.heroStatusBadge.setAttribute('data-state', wan.up ? 'online' : 'local');
+			dom.content(this.els.heroStatusBadge, [
+				E('span', { 'class': 'efc-online-dot' }),
+				wan.up ? '[ PROTOSYNC · ONLINE ]' : '[ PROTOSYNC · LOCAL ]'
+			]);
+		}
 		dom.content(this.els.wanRx, formatRate(rxRate) + ' (' + formatMbps(rxRate) + ')');
 		dom.content(this.els.wanTx, formatRate(txRate) + ' (' + formatMbps(txRate) + ')');
 		dom.content(this.els.wanSpark, renderSparkSvg([
@@ -1369,7 +1579,7 @@ return view.extend({
 		this.els.wanSub.setAttribute('title', wanText);
 		dom.content(this.els.wanSub, wanText);
 
-		// 04 // ACTIVE NODES
+		// 04 // PROTOCOL NODES
 		var clientData = buildClientRows(snap.leases4, snap.leases6, snap.hostHints);
 		this.latestClients = clientData;
 		if (isInitial && clientData.dhcpRows.length === 0 && clientData.allRows.length > 0)
@@ -1383,23 +1593,27 @@ return view.extend({
 		dom.content(this.els.nodesLeaseVal, String(clientData.dhcpRows.length));
 		dom.content(this.els.nodesCtVal, String(ctArr.length));
 		this.els.nodesBadge.setAttribute('data-tone', 'ok');
-		dom.content(this.els.nodesBadge, clientData.allRows.length + ' KNOWN');
+		dom.content(this.els.nodesBadge, clientData.allRows.length + ' REGISTERED');
 
-		// Physical Ports + Logical Interfaces
+		// Physical Relays + Protocol Interfaces
 		var ports = resolvePhysicalPorts(unwrapArray(snap.builtinPorts, 'result'), devices, ifaces);
 		var visibleIfaces = ifaces.filter(function(ifc) {
 			return ifc && ifc['interface'] && ifc['interface'] !== 'loopback';
 		});
-		dom.content(this.els.netMeta, ports.length + ' PORTS · ' + visibleIfaces.length + ' INTERFACES');
+		dom.content(this.els.netMeta, ports.length + ' RELAYS · ' + visibleIfaces.length + ' INTERFACES');
 
-		dom.content(this.els.portsStrip, ports.length ? ports.map(function(p) {
+		dom.content(this.els.portsStrip, ports.length ? ports.map(function(p, idx) {
+			var relayCode = 'R-' + String(idx + 1).padStart(2, '0');
 			return E('div', { 'class': 'efc-port-card' + (p.up ? ' is-up' : '') }, [
 				E('div', { 'class': 'efc-port-top' }, [
 					E('span', { 'class': 'efc-port-id' }, [
 						E('span', { 'class': 'efc-port-led' }),
 						p.device
 					]),
-					E('span', { 'class': 'efc-port-role', 'data-role': p.role }, [p.role])
+					E('span', { 'class': 'efc-port-badges' }, [
+						E('span', { 'class': 'efc-port-idx' }, [relayCode]),
+						E('span', { 'class': 'efc-port-role', 'data-role': p.role }, [p.role])
+					])
 				]),
 				E('div', { 'class': 'efc-port-visual' }, [
 					buildRj45Icon(),
@@ -1412,9 +1626,11 @@ return view.extend({
 					])
 				])
 			]);
-		}) : E('div', { 'class': 'efc-empty' }, [_('No physical Ethernet ports reported')]));
+		}) : E('div', { 'class': 'efc-empty' }, [_('// NO PHYSICAL RELAYS REPORTED')]));
 
 		dom.content(this.els.ifacesGrid, visibleIfaces.length ? visibleIfaces.map(function(ifc) {
+			var devLabel = ifc.l3_device || ifc.device || '-';
+			var devObj = (devLabel && devLabel !== '-' && devices && devices[devLabel]) ? devices[devLabel] : null;
 			var ip4s = Array.isArray(ifc['ipv4-address']) ? ifc['ipv4-address'].map(function(a) {
 				return a.address + '/' + a.mask;
 			}) : [];
@@ -1424,16 +1640,34 @@ return view.extend({
 			var pds = Array.isArray(ifc['ipv6-prefix']) ? ifc['ipv6-prefix'].map(function(p) {
 				return p.address + '/' + p.mask;
 			}) : [];
+			if (!ip4s.length && devObj && Array.isArray(devObj.ipaddrs)) {
+				ip4s = devObj.ipaddrs.map(function(a) {
+					if (!a || !a.address) return '';
+					var cidr = netmaskToPrefix(a.mask != null ? a.mask : a.netmask);
+					return cidr != null ? (a.address + '/' + cidr) : a.address;
+				}).filter(Boolean);
+			}
+			if (!ip6s.length && devObj && Array.isArray(devObj.ip6addrs)) {
+				ip6s = devObj.ip6addrs.map(function(a) {
+					if (!a || !a.address) return '';
+					var cidr = netmaskToPrefix(a.mask != null ? a.mask : a.netmask);
+					return cidr != null ? (a.address + '/' + cidr) : a.address;
+				}).filter(Boolean);
+			}
 			var ip6Display = pds[0] || ip6s.filter(function(x) { return !/^fe80:/i.test(x); })[0] || ip6s[0] || '-';
-			var devLabel = ifc.l3_device || ifc.device || '-';
+			var roleTag = classifyIfaceRole(ifc['interface'], ifc.proto);
+
+			var badgeChildren = [];
+			if (roleTag) {
+				badgeChildren.push(E('span', { 'class': 'efc-tag efc-tag--role' }, [roleTag]));
+			}
+			badgeChildren.push(E('span', { 'class': 'efc-tag' }, [String(ifc.proto || 'none').toUpperCase()]));
+			badgeChildren.push(E('span', { 'class': 'efc-tag ' + (ifc.up ? 'efc-tag--up' : 'efc-tag--down') }, [ifc.up ? 'UP' : 'DOWN']));
 
 			return E('div', { 'class': 'efc-iface-card' + (ifc.up ? ' is-up' : '') }, [
 				E('div', { 'class': 'efc-iface-head' }, [
 					E('span', { 'class': 'efc-iface-name' }, [ifc['interface']]),
-					E('div', { 'class': 'efc-iface-badges' }, [
-						E('span', { 'class': 'efc-tag' }, [String(ifc.proto || 'none').toUpperCase()]),
-						E('span', { 'class': 'efc-tag ' + (ifc.up ? 'efc-tag--up' : 'efc-tag--down') }, [ifc.up ? 'UP' : 'DOWN'])
-					])
+					E('div', { 'class': 'efc-iface-badges' }, badgeChildren)
 				]),
 				E('div', { 'class': 'efc-iface-rows' }, [
 					E('div', { 'class': 'efc-iface-row' }, [
@@ -1454,37 +1688,46 @@ return view.extend({
 					])
 				])
 			]);
-		}) : E('div', { 'class': 'efc-empty' }, [_('No logical interfaces reported')]));
+		}) : E('div', { 'class': 'efc-empty' }, [_('// NO PROTOCOL INTERFACES REPORTED')]));
 
-		// Installed Services Quick-Launch Dock
+		// AIC Protocol Modules Dock (LuCI Menu Apps + Headless Core Daemons)
 		var rcMap = unwrapMap(snap.rcList, 'result');
 		var initMap = unwrapMap(snap.initList, 'result');
-		var apps = this.menuApps || [];
-		dom.content(this.els.appsMeta, apps.length + ' APPS');
+		var apps = collectMergedModules(this.menuApps, rcMap, initMap, this.startupUrl);
+		dom.content(this.els.appsMeta, apps.length + ' MODULES');
 		dom.content(this.els.appsGrid, apps.length ? apps.map(function(app) {
 			var svc = resolveServiceState(app.name, rcMap, initMap);
 			var pillAttrs = { 'class': 'efc-app-status' };
 			if (svc.state) pillAttrs['data-state'] = svc.state;
+			var cardTag = app.url ? 'a' : 'div';
+			var cardAttrs = {
+				'class': 'efc-app-card' + (app.isDaemon ? ' is-daemon' : ''),
+				'title': app.isDaemon ? ('Daemon: /etc/init.d/' + app.name) : app.title
+			};
+			if (app.url) cardAttrs['href'] = app.url;
 
-			return E('a', { 'class': 'efc-app-card', 'href': app.url }, [
+			return E(cardTag, cardAttrs, [
 				E('div', { 'class': 'efc-app-top' }, [
 					E('span', { 'class': 'efc-app-cat' }, [app.category]),
 					E('span', pillAttrs, [svc.label])
 				]),
 				E('div', { 'class': 'efc-app-name-row' }, [
 					E('span', { 'class': 'efc-app-name', 'title': app.title }, [app.title]),
-					E('span', { 'class': 'efc-app-arrow', 'aria-hidden': 'true' }, ['↗'])
+					E('span', { 'class': 'efc-app-arrow', 'aria-hidden': 'true' }, [app.url ? '↗' : '◆'])
 				])
 			]);
-		}) : E('div', { 'class': 'efc-empty' }, [_('No optional service, VPN, Docker or NAS modules installed.')]));
+		}) : E('div', { 'class': 'efc-empty' }, [_('// NO OPTIONAL AIC MODULES DEPLOYED')]));
 
-		// Storage Mounts
+		// Depot Storage Volumes
 		var mounts = resolveStorageMounts(unwrapArray(snap.mountPoints, 'result'), sysInfo);
-		dom.content(this.els.mountsMeta, mounts.length + ' MOUNTS');
+		dom.content(this.els.mountsMeta, mounts.length + ' VOLUMES');
 		dom.content(this.els.mountsList, mounts.length ? mounts.map(function(m) {
 			return E('div', { 'class': 'efc-mount-item' }, [
 				E('div', { 'class': 'efc-mount-top' }, [
-					E('span', { 'class': 'efc-mount-path' }, [m.mount]),
+					E('span', { 'class': 'efc-mount-head-left' }, [
+						E('span', { 'class': 'efc-mount-path' }, [m.mount]),
+						E('span', { 'class': 'efc-mount-role' }, [classifyMountRole(m.mount)])
+					]),
 					E('span', { 'class': 'efc-mount-dev', 'title': m.device }, [m.device])
 				]),
 				createSegBar(m.pct),
@@ -1493,9 +1736,9 @@ return view.extend({
 					E('span', {}, [m.pct + '%'])
 				])
 			]);
-		}) : E('div', { 'class': 'efc-empty' }, [_('No storage mount points available')]));
+		}) : E('div', { 'class': 'efc-empty' }, [_('// NO DEPOT VOLUMES MOUNTED')]));
 
-		// Active LAN Clients Table (preserves search input & mode!)
+		// Active Terminal Roster (preserves search input & mode!)
 		this.renderClientsTable();
 	},
 
@@ -1505,7 +1748,7 @@ return view.extend({
 
 		dom.content(this.els.filterBtn,
 			this.clientFilterMode === 'all'
-				? ('ALL HOSTS (' + data.allRows.length + ')')
+				? ('ALL TERMINALS (' + data.allRows.length + ')')
 				: ('DHCP LEASES (' + data.dhcpRows.length + ')')
 		);
 
@@ -1517,20 +1760,25 @@ return view.extend({
 				r.mac.toLowerCase().indexOf(q) !== -1;
 		}) : sourceRows;
 
-		dom.content(this.els.clientsMeta, filtered.length + ' / ' + sourceRows.length + ' SHOWN');
+		dom.content(this.els.clientsMeta, filtered.length + ' / ' + sourceRows.length + ' ACTIVE');
 
 		if (!filtered.length) {
 			dom.content(this.els.clientsTbody, E('tr', {}, [
-				E('td', { 'colspan': '5', 'style': 'text-align:center;color:var(--efc-ink-muted);padding:18px;' }, [
-					q ? _('No clients match current filter') : _('No active LAN clients detected')
+				E('td', { 'colspan': '5', 'style': 'text-align:center;color:var(--efc-ink-muted);padding:18px;font-family:var(--efc-font-mono);' }, [
+					q ? _('// NO MATCHING TERMINALS IN SECTOR') : _('// NO ACTIVE TERMINALS DETECTED')
 				])
 			]));
 			return;
 		}
 
 		dom.content(this.els.clientsTbody, filtered.map(function(r) {
+			var hasName = r.hostname && r.hostname !== '-' && r.hostname !== '*';
 			return E('tr', {}, [
-				E('td', {}, [r.hostname || '-']),
+				E('td', {}, [
+					hasName
+						? r.hostname
+						: E('span', { 'class': 'efc-unit-anon' }, ['UNIDENTIFIED UNIT'])
+				]),
 				E('td', { 'class': 'efc-mono' }, [r.ip4 || '-']),
 				E('td', { 'class': 'efc-mono' }, [r.ip6 || '-']),
 				E('td', { 'class': 'efc-mono' }, [r.mac || '-']),

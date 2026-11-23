@@ -1081,6 +1081,115 @@
 	border: 1px dashed var(--efc-border);
 }
 
+:root[data-darkmode="true"] .ef-console .ef-only-light {
+	display: none !important;
+}
+
+:root:not([data-darkmode="true"]) .ef-console .ef-only-dark {
+	display: none !important;
+}
+
+.efc-hero-reticle {
+	position: absolute;
+	top: -18px;
+	right: 12px;
+	width: 176px;
+	height: 176px;
+	color: var(--efc-ink);
+	opacity: 0.055;
+	pointer-events: none;
+	user-select: none;
+}
+
+:root[data-darkmode="true"] .efc-hero-reticle {
+	color: var(--efc-yellow);
+	opacity: 0.075;
+}
+
+.efc-hero-pills {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	align-self: flex-start;
+}
+
+.efc-sector-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-surface);
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--efc-ink);
+}
+
+.efc-sector-pip {
+	width: 6px;
+	height: 6px;
+	background: var(--efc-yellow);
+	box-shadow: 0 0 0 2px rgba(255, 230, 0, 0.24);
+	flex-shrink: 0;
+}
+
+.efc-online-badge[data-state="local"] {
+	color: var(--efc-warn);
+}
+
+.efc-online-badge[data-state="local"] .efc-online-dot {
+	background: var(--efc-warn);
+	box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.22);
+}
+
+.efc-port-badges {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.efc-port-idx {
+	font-family: var(--efc-font-mono);
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--efc-ink-muted);
+}
+
+.efc-tag--role {
+	color: var(--efc-cyan);
+	border-color: rgba(0, 158, 140, 0.35);
+}
+
+.efc-mount-head-left {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.efc-mount-role {
+	font-family: var(--efc-font-mono);
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	padding: 1px 5px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-card);
+	color: var(--efc-ink-muted);
+	white-space: nowrap;
+}
+
+.efc-unit-anon {
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	letter-spacing: 0.05em;
+	color: var(--efc-ink-muted);
+}
+
 /* ---------- Responsive Breakpoints ---------- */
 @media (max-width: 1180px) {
 	.efc-kpi-grid {

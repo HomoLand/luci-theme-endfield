@@ -251,14 +251,14 @@ return baseclass.extend({
 		this.commands = [
 			{
 				title: _('Toggle Dark / Light Mode'),
-				category: 'THEME',
-				desc: 'Switch Gallery White / DIJIANG Telemetry HUD',
+				category: 'SECTOR',
+				desc: 'Switch Talos-II Surface Grid (Light) / OMV Dijiang HUD (Dark)',
 				action: this.toggleDarkMode
 			},
 			{
 				title: _('Toggle Sidebar'),
-				category: 'UI',
-				desc: 'Shortcut: [',
+				category: 'RAIL',
+				desc: 'Collapse / expand left rail (Shortcut: [)',
 				action: this.toggleSidebar
 			}
 		];

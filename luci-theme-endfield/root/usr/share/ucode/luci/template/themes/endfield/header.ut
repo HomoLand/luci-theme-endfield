@@ -56,8 +56,8 @@
 		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="darkreader-lock">
-		<link rel="stylesheet" href="{{ media }}/cascade.css?v=25.12-ef21">
-		<link rel="stylesheet" media="only screen and (max-width: 860px)" href="{{ media }}/mobile.css?v=25.12-ef21">
+		<link rel="stylesheet" href="{{ media }}/cascade.css?v=25.12-ef30">
+		<link rel="stylesheet" media="only screen and (max-width: 860px)" href="{{ media }}/mobile.css?v=25.12-ef30">
 		<link rel="icon" href="{{ media }}/logo.svg" type="image/svg+xml" sizes="any">
 		{% if (node?.css): %}
 		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">
@@ -66,7 +66,7 @@
 		<style title="text/css">{{ css }}</style>
 		{% endif %}
 		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
-		<script src="{{ resource }}/cbi.js?v=25.12-ef21"></script>
+		<script src="{{ resource }}/cbi.js?v=25.12-ef30"></script>
 	</head>
 
 	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', ctx.request_path), true) }}">
@@ -92,16 +92,19 @@
 				<nav class="ef-sidebar-scroll" id="mainmenu"></nav>
 
 				<div class="ef-sidebar-footer">
-					{% if (target || kernel): %}
 					<div class="ef-sidebar-node-meta">
+						<div class="meta-row">
+							<span>SECTOR</span>
+							<span class="meta-val ef-only-light">TALOS-II</span>
+							<span class="meta-val ef-only-dark">OMV DIJIANG</span>
+						</div>
 						{% if (target): %}
-						<div class="meta-row"><span>TARGET</span><span class="meta-val">{{ target }}</span></div>
+						<div class="meta-row"><span>ARCH</span><span class="meta-val">{{ target }}</span></div>
 						{% endif %}
 						{% if (kernel): %}
 						<div class="meta-row"><span>KERNEL</span><span class="meta-val">{{ kernel }}</span></div>
 						{% endif %}
 					</div>
-					{% endif %}
 
 					<div class="ef-rail-capsule" role="toolbar" aria-label="{{ _('Quick controls') }}">
 						<button type="button" class="ef-capsule-btn" id="ef-mode-toggle" data-ef-action="mode" title="Toggle Dark / Light Mode" aria-label="Toggle Dark / Light Mode">
@@ -144,6 +147,11 @@
 					<ul class="nav" id="topmenu" style="display:none"></ul>
 
 					<div class="ef-header-actions">
+						<span class="ef-header-sector" aria-hidden="true">
+							<span class="ef-sector-dot"></span>
+							<span class="ef-only-light">EF-IND // TALOS-II</span>
+							<span class="ef-only-dark">EF-IND // OMV DIJIANG</span>
+						</span>
 						<span class="ef-dot-matrix ef-header-dots" aria-hidden="true"></span>
 
 						<button type="button" class="ef-cmd-trigger ef-header-mobile-only" data-ef-action="cmd" title="Command Palette (Ctrl+K)">
