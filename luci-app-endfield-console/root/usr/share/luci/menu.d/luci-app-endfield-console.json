@@ -1,0 +1,13 @@
+{
+	"admin/endfield": {
+		"title": "Console",
+		"order": 5,
+		"action": {
+			"type": "view",
+			"path": "endfield/console"
+		},
+		"depends": {
+			"acl": [ "luci-mod-status-index" ]
+		}
+	}
+}

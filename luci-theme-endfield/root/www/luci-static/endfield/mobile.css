@@ -1,0 +1,27 @@
+/* luci-theme-endfield mobile overrides (<= 860px) */
+@media only screen and (max-width: 860px) {
+	.table {
+		display: block;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+	.cbi-section {
+		padding: 12px;
+	}
+	.cbi-section > h3,
+	.cbi-section > legend {
+		width: calc(100% + 24px);
+		margin: -12px -12px 12px -12px;
+	}
+	input[type="text"],
+	input[type="password"],
+	input[type="search"],
+	select,
+	.cbi-select,
+	.cbi-dropdown:not(.btn):not(.cbi-button) {
+		width: 100%;
+	}
+	.ef-login-screen {
+		padding: 16px;
+	}
+}

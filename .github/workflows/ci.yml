@@ -1,0 +1,234 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish artifacts as a GitHub Release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate-and-pack:
+    name: Validate, Audit & Pack
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify pure LF line endings
+        run: |
+          python3 - <<'PY'
+          import pathlib, sys
+          bad = []
+          for p in sorted(pathlib.Path(".").rglob("*")):
+              if ".git" in p.parts or not p.is_file():
+                  continue
+              data = p.read_bytes()
+              if b"\x00" in data:
+                  continue
+              if b"\r" in data:
+                  bad.append(f"{p}: contains CR/CRLF bytes")
+              if data.startswith(b"\xef\xbb\xbf"):
+                  bad.append(f"{p}: contains UTF-8 BOM")
+          if bad:
+              print("ERROR: line-ending/BOM check failed:\n" + "\n".join(bad), file=sys.stderr)
+              sys.exit(1)
+          print("Line-ending audit passed: 100% pure LF.")
+          PY
+
+      - name: Syntax-check shell scripts
+        run: |
+          set -euo pipefail
+          for req in \
+            scripts/stage-files.sh \
+            scripts/install.sh \
+            scripts/uninstall.sh \
+            scripts/pack-release.sh \
+            luci-theme-endfield/root/etc/uci-defaults/35_luci-theme-endfield; do
+            test -f "$req"
+          done
+          while IFS= read -r -d '' f; do
+            echo "Checking shell syntax: $f"
+            sh -n "$f"
+          done < <(find . -type f \( -name '*.sh' -o -path '*/etc/uci-defaults/*' \) -print0)
+
+      - name: Validate JSON manifests (menu.d & acl.d)
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r -d '' f; do
+            echo "Checking JSON: $f"
+            python3 -m json.tool "$f" >/dev/null
+            count=$((count + 1))
+          done < <(find . -type f -name '*.json' -print0)
+          [ "$count" -ge 2 ] || { echo "Expected at least menu.d and acl.d JSON manifests, found $count" >&2; exit 1; }
+
+      - name: Syntax-check JavaScript files
+        run: |
+          set -euo pipefail
+          node --version
+          count=0
+          while IFS= read -r -d '' f; do
+            echo "Checking JS syntax: $f"
+            node --check "$f"
+            count=$((count + 1))
+          done < <(find . -type f -name '*.js' -print0)
+          [ "$count" -ge 3 ] || { echo "Expected at least 3 LuCI JS files, found $count" >&2; exit 1; }
+
+      - name: Resolve & verify package metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          THEME_VER="$(awk -F':=' '/^PKG_VERSION:=/ { print $2; exit }' luci-theme-endfield/Makefile)"
+          CONSOLE_VER="$(awk -F':=' '/^PKG_VERSION:=/ { print $2; exit }' luci-app-endfield-console/Makefile)"
+          [ -n "$THEME_VER" ] || { echo "Missing PKG_VERSION in luci-theme-endfield/Makefile" >&2; exit 1; }
+          [ -n "$CONSOLE_VER" ] || { echo "Missing PKG_VERSION in luci-app-endfield-console/Makefile" >&2; exit 1; }
+          [ "$THEME_VER" = "$CONSOLE_VER" ] || {
+            echo "Version mismatch: theme=$THEME_VER console=$CONSOLE_VER" >&2
+            exit 1
+          }
+          if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
+            VER="${GITHUB_REF_NAME#v}"
+          else
+            VER="$THEME_VER"
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version: $VER"
+
+      - name: Privacy leak guard (no private homelab IPs, domains, or tokens)
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, sys
+          patterns = [
+              r"192\.168\." + r"11[0-9]\.",
+              r"10\.225\.",
+              r"100\.(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.",
+              "sajo" + r"\.cc",
+              "oppoer" + r"\.me",
+              "oppoit" + r"\.com",
+              "Homo" + "Net-",
+              "Homo" + "Lab-",
+              "BARK_" + "URL=http",
+              r"(?:ghp_|github_pat_|glpat-)[A-Za-z0-9_]{10,}",
+          ]
+          forbidden = re.compile("|".join(patterns), re.IGNORECASE)
+          hits = []
+          for p in sorted(pathlib.Path(".").rglob("*")):
+              if ".git" in p.parts or not p.is_file():
+                  continue
+              try:
+                  text = p.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for idx, line in enumerate(text.splitlines(), 1):
+                  if forbidden.search(line):
+                      hits.append(f"{p}:{idx}: {line.strip()}")
+          if hits:
+              print("ERROR: private references detected:\n" + "\n".join(hits), file=sys.stderr)
+              sys.exit(1)
+          print("Privacy audit passed: 0 private references found.")
+          PY
+
+      - name: Smoke-test staging modes
+        run: |
+          set -euo pipefail
+          STAGE_TMP="$(mktemp -d)"
+          trap 'rm -rf "$STAGE_TMP"' EXIT
+
+          sh scripts/stage-files.sh --with-console "$STAGE_TMP/full"
+          test -f "$STAGE_TMP/full/etc/uci-defaults/35_luci-theme-endfield"
+          test -L "$STAGE_TMP/full/usr/share/ucode/luci/template/themes/endfield-dark"
+          test -L "$STAGE_TMP/full/usr/share/ucode/luci/template/themes/endfield-light"
+          test -L "$STAGE_TMP/full/www/luci-static/endfield-dark"
+          test -L "$STAGE_TMP/full/www/luci-static/endfield-light"
+          test -f "$STAGE_TMP/full/www/luci-static/endfield/cascade.css"
+          test -f "$STAGE_TMP/full/www/luci-static/endfield/console.css"
+          test -f "$STAGE_TMP/full/www/luci-static/resources/view/endfield/console.js"
+          test -f "$STAGE_TMP/full/usr/share/luci/menu.d/luci-app-endfield-console.json"
+          test -f "$STAGE_TMP/full/usr/share/rpcd/acl.d/luci-app-endfield-console.json"
+
+          sh scripts/stage-files.sh --theme-only "$STAGE_TMP/theme"
+          test -f "$STAGE_TMP/theme/www/luci-static/endfield/cascade.css"
+          test ! -e "$STAGE_TMP/theme/www/luci-static/resources/view/endfield/console.js"
+
+          sh scripts/stage-files.sh --console-only "$STAGE_TMP/console"
+          test -f "$STAGE_TMP/console/www/luci-static/resources/view/endfield/console.js"
+          test -f "$STAGE_TMP/console/www/luci-static/endfield/console.css"
+          test ! -e "$STAGE_TMP/console/www/luci-static/endfield/cascade.css"
+          echo "All staging modes verified."
+
+      - name: Pack standalone release tarballs
+        run: |
+          set -euo pipefail
+          VER="${{ steps.meta.outputs.version }}"
+          sh scripts/pack-release.sh --out-dir dist --version "$VER"
+          test -f "dist/luci-endfield-suite-${VER}.tar.gz"
+          test -f "dist/luci-theme-endfield-${VER}.tar.gz"
+          tar -tzf "dist/luci-endfield-suite-${VER}.tar.gz" >/dev/null
+          tar -tzf "dist/luci-theme-endfield-${VER}.tar.gz" >/dev/null
+          (cd dist && sha256sum * > SHA256SUMS)
+          ls -lh dist/
+          cat dist/SHA256SUMS
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-theme-endfield-dist
+          path: dist/
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: validate-and-pack
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: luci-theme-endfield-dist
+          path: release-upload
+
+      - name: Prepare release tag & notes
+        id: prep
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF#refs/tags/v}" != "$GITHUB_REF" ]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="v${{ needs.validate-and-pack.outputs.version }}-build.${{ github.run_number }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          ls -lh release-upload/
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.prep.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-upload/* --clobber
+          else
+            gh release create "$TAG" release-upload/* \
+              --title "luci-theme-endfield ${TAG}" \
+              --notes "Standalone release bundles for \`luci-theme-endfield\` and \`luci-app-endfield-console\` (OpenWrt / ImmortalWrt 25.12)." \
+              --latest
+          fi

@@ -1,0 +1,105 @@
+{#
+ luci-theme-endfield — Standalone Protocol Terminal Login (sysauth.ut)
+ Licensed under the Apache License 2.0.
+-#}
+
+{%
+	const boardinfo = ubus.call('system', 'board') ?? {};
+	const hostname = striptags(boardinfo.hostname ?? 'OpenWrt');
+-%}
+
+{% include('header', { blank_page: true }) %}
+
+<section class="ef-login-screen active" id="ef-login-screen">
+	<div class="ef-login-watermark" aria-hidden="true">// ENDFIELD</div>
+
+	<div class="ef-login-topbar">
+		<div class="ef-login-coord">
+			<span class="ef-crumb-tag">[ AUTH // 00 ]</span>
+			<span>{{ hostname }}</span>
+			<span>{{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }}</span>
+		</div>
+		<button type="button" class="ef-mode-toggle" id="ef-login-mode-toggle" title="Toggle Dark / Light Mode">
+			<svg data-mode-icon="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+			<svg data-mode-icon="moon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+			<span id="ef-login-mode-label">LIGHT</span>
+		</button>
+	</div>
+
+	<div class="ef-login-center">
+		<div class="ef-login-monolith">
+			<div class="ef-login-head">
+				<div class="ef-login-tier-1">
+					<span>// ENDFIELD GATEWAY PROTOCOL</span>
+					<span class="ef-dot-matrix" aria-hidden="true"></span>
+				</div>
+				<div class="ef-login-tier-2">
+					<span class="ef-arrow-badge">↘ {{ _('AUTHORIZATION REQUIRED') }}</span>
+				</div>
+				<div class="ef-login-tier-3">
+					<div class="ef-login-emblem" aria-hidden="true">
+						<svg viewBox="0 0 24 24" fill="none">
+							<path d="M12 2L21 7.2V16.8L12 22L3 16.8V7.2L12 2Z" stroke="currentColor" stroke-width="2.1"/>
+							<path d="M12 6.5L17 9.4V14.6L12 17.5L7 14.6V9.4L12 6.5Z" fill="currentColor"/>
+							<path d="M12 2V6.5M21 7.2L17 9.4M3 7.2L7 9.4" stroke="currentColor" stroke-width="1.6"/>
+						</svg>
+					</div>
+					<div class="ef-login-identity">
+						<h1 class="ef-login-title">{{ hostname }}</h1>
+						<div class="ef-login-sub">{{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }}</div>
+					</div>
+				</div>
+			</div>
+			<div class="ef-spectrum-rule" aria-hidden="true"></div>
+
+			<form method="post" class="ef-login-form" id="ef-login-form">
+				{% if (fuser): %}
+				<div class="alert-message error">
+					<div>{{ _('Invalid username and/or password! Please try again.') }}</div>
+				</div>
+				{% endif %}
+
+				<div class="ef-field-group">
+					<label class="ef-field-label" for="luci_username">
+						<span>{{ _('Username') }}</span>
+						<span>OPERATOR</span>
+					</label>
+					<input name="luci_username" id="luci_username" type="text" class="ef-mono" autocomplete="username" value="{{ entityencode(duser, true) }}">
+				</div>
+
+				<div class="ef-field-group">
+					<label class="ef-field-label" for="luci_password">
+						<span>{{ _('Password') }}</span>
+						<span>ACCESS KEY</span>
+					</label>
+					<div class="ef-pass-wrap">
+						<input name="luci_password" id="luci_password" type="password" autocomplete="current-password">
+						<button type="button" class="ef-pass-toggle" id="ef-pass-toggle" tabindex="-1">SHOW</button>
+					</div>
+				</div>
+
+				<button type="submit" class="btn cbi-button-positive important ef-login-submit" id="ef-login-submit">{{ _('Log in') }}</button>
+			</form>
+
+			<div class="ef-login-meta-bar">
+				<span>{{ striptags(version.luciname ?? 'LuCI') }}</span>
+				<span>SYSAUTH // {{ striptags(version.distversion ?? '25.12') }}</span>
+			</div>
+		</div>
+	</div>
+
+	<div class="ef-login-bottom">
+		<span>{{ striptags(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''}`) }}</span>
+		<span>LUCI-THEME-ENDFIELD</span>
+	</div>
+</section>
+
+<div id="view" style="display:none">
+	<script>
+		L.require('ui').then(function(ui) {
+			ui.instantiateView('endfield.sysauth');
+		});
+	</script>
+</div>
+
+{% include('footer', { blank_page: true }) %}

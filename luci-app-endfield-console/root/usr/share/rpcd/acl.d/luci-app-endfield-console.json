@@ -1,0 +1,38 @@
+{
+	"luci-app-endfield-console": {
+		"description": "Grant read access to Endfield Command Console telemetry",
+		"read": {
+			"ubus": {
+				"system": [
+					"board",
+					"info"
+				],
+				"luci": [
+					"getCPUUsage",
+					"getCPUInfo",
+					"getTempInfo",
+					"getOnlineUsers",
+					"getMountPoints",
+					"getRealtimeStats",
+					"getConntrackList",
+					"getBuiltinEthernetPorts",
+					"getInitList"
+				],
+				"luci-rpc": [
+					"getNetworkDevices",
+					"getDHCPLeases",
+					"getHostHints"
+				],
+				"network.interface": [
+					"dump"
+				],
+				"rc": [
+					"list"
+				]
+			},
+			"uci": [
+				"luci"
+			]
+		}
+	}
+}

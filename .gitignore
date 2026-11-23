@@ -1,0 +1,17 @@
+dist/
+out/
+release/
+release-artifacts/
+release-upload/
+build/
+*.tar.gz
+*.apk
+*.ipk
+SHA256SUMS
+__pycache__/
+*.pyc
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+desktop.ini

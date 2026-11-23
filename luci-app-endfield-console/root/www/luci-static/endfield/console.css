@@ -1,0 +1,1128 @@
+/* ============================================================================
+ * luci-app-endfield-console — Endfield Command Console Stylesheet
+ * Harmonizes with luci-theme-endfield (--ef-*) while providing crisp
+ * architectural fallbacks when rendered under Bootstrap or other LuCI themes.
+ * ============================================================================ */
+
+.ef-console {
+	--efc-bg: var(--ef-bg, #F6F7F9);
+	--efc-surface: var(--ef-surface, #FAFBFD);
+	--efc-card: var(--ef-surface-elevated, #FFFFFF);
+	--efc-border: var(--ef-border, #E5E7EC);
+	--efc-border-strong: var(--ef-border-strong, #CBD2DC);
+	--efc-ink: var(--ef-ink, #191919);
+	--efc-ink-2: var(--ef-ink-secondary, #4D4D4D);
+	--efc-ink-muted: var(--ef-ink-muted, #8C919A);
+	--efc-yellow: var(--ef-yellow, #FFE600);
+	--efc-yellow-ink: var(--ef-yellow-ink, #191919);
+	--efc-success: var(--ef-success, #0E9F6E);
+	--efc-warn: var(--ef-warn, #D97706);
+	--efc-danger: var(--ef-danger, #DC2626);
+	--efc-cyan: var(--ef-cyan, #009E8C);
+	--efc-rx: #00A896;
+	--efc-tx: #C98A00;
+	--efc-cpu-stroke: #191919;
+	--efc-cpu-fill: #FFE600;
+	--efc-font-display: var(--font-display, "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif);
+	--efc-font-mono: var(--font-mono, "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, ui-monospace, monospace);
+	--efc-hatch: repeating-linear-gradient(
+		-45deg,
+		rgba(25, 25, 25, 0.04) 0px,
+		rgba(25, 25, 25, 0.04) 4px,
+		transparent 4px,
+		transparent 10px
+	);
+
+	color: var(--efc-ink);
+	font-size: 13px;
+	line-height: 1.5;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding-bottom: 12px;
+}
+
+:root[data-darkmode="true"] .ef-console {
+	--efc-rx: #00D4B4;
+	--efc-tx: #FFE600;
+	--efc-cpu-stroke: #FFE600;
+	--efc-cpu-fill: #FFE600;
+	--efc-hatch: repeating-linear-gradient(
+		-45deg,
+		rgba(255, 255, 255, 0.045) 0px,
+		rgba(255, 255, 255, 0.045) 4px,
+		transparent 4px,
+		transparent 10px
+	);
+}
+
+.ef-console *,
+.ef-console *::before,
+.ef-console *::after {
+	box-sizing: border-box;
+}
+
+/* ---------- Shared Utilities ---------- */
+.efc-mono {
+	font-family: var(--efc-font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+.efc-panel {
+	position: relative;
+	background: var(--efc-card);
+	border: 1px solid var(--efc-border);
+	padding: 16px 18px;
+}
+
+.efc-panel::before {
+	content: "";
+	position: absolute;
+	top: -1px;
+	left: -1px;
+	width: 10px;
+	height: 10px;
+	border-top: 2px solid var(--efc-yellow);
+	border-left: 2px solid var(--efc-yellow);
+	pointer-events: none;
+}
+
+.efc-panel-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--efc-border);
+	flex-wrap: wrap;
+}
+
+.efc-panel-title-wrap {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.efc-panel-code {
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--efc-ink-muted);
+	text-transform: uppercase;
+}
+
+.efc-panel-title {
+	font-family: var(--efc-font-display);
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	color: var(--efc-ink);
+	margin: 0;
+	text-transform: uppercase;
+}
+
+.efc-panel-meta {
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	color: var(--efc-ink-muted);
+}
+
+/* 6x2 Mini Square Dot-Matrix Stamp */
+.efc-dotmatrix {
+	display: inline-grid;
+	grid-template-columns: repeat(6, 3px);
+	grid-template-rows: repeat(2, 3px);
+	gap: 2px;
+	flex-shrink: 0;
+}
+
+.efc-dotmatrix span {
+	width: 3px;
+	height: 3px;
+	background: var(--efc-ink-muted);
+	opacity: 0.65;
+}
+
+.efc-dotmatrix span:nth-child(2),
+.efc-dotmatrix span:nth-child(5),
+.efc-dotmatrix span:nth-child(9) {
+	background: var(--efc-yellow);
+	opacity: 1;
+}
+
+/* Official Segmented Progress Bar */
+.efc-segbar {
+	display: grid;
+	grid-template-columns: repeat(20, minmax(0, 1fr));
+	gap: 3px;
+	height: 10px;
+	padding: 2px;
+	background: var(--efc-surface);
+	border: 1px solid var(--efc-border);
+	background-image: var(--efc-hatch);
+}
+
+.efc-segbar-seg {
+	background: rgba(140, 145, 154, 0.20);
+	transition: background-color 0.2s ease;
+}
+
+.efc-segbar-seg.on {
+	background: var(--efc-yellow);
+}
+
+.efc-segbar[data-tone="ok"] .efc-segbar-seg.on {
+	background: var(--efc-yellow);
+}
+
+:root:not([data-darkmode="true"]) .efc-segbar[data-tone="ok"] .efc-segbar-seg.on {
+	background: #191919;
+	box-shadow: inset 0 -2px 0 var(--efc-yellow);
+}
+
+.efc-segbar[data-tone="warn"] .efc-segbar-seg.on {
+	background: var(--efc-warn);
+}
+
+.efc-segbar[data-tone="danger"] .efc-segbar-seg.on {
+	background: var(--efc-danger);
+}
+
+/* ---------- 1. Hero Banner ---------- */
+.efc-hero {
+	position: relative;
+	overflow: hidden;
+	background: var(--efc-card);
+	border: 1px solid var(--efc-border);
+	padding: 20px 22px 18px;
+}
+
+.efc-hero-spectrum {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: linear-gradient(90deg, #FF2E93 0% 24%, #00D4B4 24% 58%, #FFE600 58% 100%);
+}
+
+.efc-hero-watermark {
+	position: absolute;
+	top: auto;
+	bottom: -8px;
+	right: 16px;
+	font-family: var(--efc-font-display);
+	font-size: 62px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	line-height: 0.9;
+	color: transparent;
+	-webkit-text-stroke: 1px rgba(140, 145, 154, 0.13);
+	background-image: var(--efc-hatch);
+	-webkit-background-clip: text;
+	background-clip: text;
+	opacity: 0.55;
+	pointer-events: none;
+	user-select: none;
+	white-space: nowrap;
+}
+
+.efc-hero-top {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.efc-hero-titles {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+
+.efc-eyebrow-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.efc-eyebrow {
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	color: var(--efc-ink-muted);
+	text-transform: uppercase;
+}
+
+.efc-console-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 9px;
+	background: var(--efc-yellow);
+	color: var(--efc-yellow-ink);
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	width: fit-content;
+	clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+}
+
+.efc-hostname-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.efc-hostname {
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	font-family: var(--efc-font-display);
+	font-size: 28px;
+	font-weight: 800;
+	letter-spacing: 0.02em;
+	line-height: 1.1;
+	color: var(--efc-ink);
+}
+
+.efc-online-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 9px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-surface);
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--efc-success);
+}
+
+.efc-online-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--efc-success);
+	box-shadow: 0 0 0 3px rgba(14, 159, 110, 0.18);
+}
+
+.efc-poll-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-surface);
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--efc-ink-2);
+	align-self: flex-start;
+}
+
+.efc-spec-chips {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	margin-top: 16px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-surface);
+}
+
+.efc-spec-chip {
+	padding: 9px 12px;
+	border-right: 1px solid var(--efc-border);
+	min-width: 0;
+}
+
+.efc-spec-chip:last-child {
+	border-right: none;
+}
+
+.efc-spec-label {
+	display: block;
+	font-family: var(--efc-font-mono);
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--efc-ink-muted);
+	text-transform: uppercase;
+	margin-bottom: 2px;
+}
+
+.efc-spec-value {
+	display: block;
+	font-family: var(--efc-font-mono);
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--efc-ink);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.efc-quick-ops {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-top: 14px;
+}
+
+.efc-quick-label {
+	font-family: var(--efc-font-mono);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--efc-ink-muted);
+	margin-right: 4px;
+	text-transform: uppercase;
+}
+
+.efc-op-btn {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 13px 6px 12px;
+	background: #262626;
+	color: #FFFFFF !important;
+	border: 1px solid #262626;
+	border-left: 3px solid var(--efc-yellow);
+	font-family: var(--efc-font-mono);
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-decoration: none !important;
+	transition: background-color 0.14s ease, transform 0.14s ease;
+}
+
+.efc-op-btn:hover {
+	background: #141414;
+	text-decoration: none !important;
+	transform: translateY(-1px);
+}
+
+:root[data-darkmode="true"] .efc-op-btn {
+	background: #20242D;
+	border-color: #2E3440;
+	border-left: 3px solid var(--efc-yellow);
+	color: #FFFFFF !important;
+}
+
+:root[data-darkmode="true"] .efc-op-btn:hover {
+	background: #282E3A;
+}
+
+.efc-op-btn--primary {
+	background: var(--efc-yellow);
+	border-color: var(--efc-yellow);
+	border-left-color: var(--efc-yellow);
+	color: var(--efc-yellow-ink) !important;
+	font-weight: 800;
+}
+
+.efc-op-btn--primary:hover {
+	background: #F2D800;
+}
+
+.efc-op-btn--primary::after {
+	content: "";
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 0 0 9px 9px;
+	border-color: transparent transparent var(--efc-card) transparent;
+}
+
+/* ---------- 2. 4-Column Live Telemetry KPI Strip ---------- */
+.efc-kpi-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.efc-kpi-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 14px 16px;
+	background: var(--efc-card);
+	border: 1px solid var(--efc-border);
+	min-width: 0;
+}
+
+.efc-kpi-card::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: transparent;
+	transition: background-color 0.15s ease;
+}
+
+.efc-kpi-card:hover::after {
+	background: var(--efc-yellow);
+}
+
+.efc-kpi-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.efc-kpi-code {
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--efc-ink-muted);
+	text-transform: uppercase;
+}
+
+.efc-kpi-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 1px 7px;
+	font-family: var(--efc-font-mono);
+	font-size: 10.5px;
+	font-weight: 700;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-surface);
+	color: var(--efc-ink-2);
+	white-space: nowrap;
+}
+
+.efc-kpi-badge[data-tone="ok"] {
+	color: var(--efc-success);
+	border-color: rgba(14, 159, 110, 0.35);
+}
+
+.efc-kpi-badge[data-tone="warn"] {
+	color: var(--efc-warn);
+	border-color: rgba(217, 119, 6, 0.4);
+}
+
+.efc-kpi-badge[data-tone="danger"] {
+	color: var(--efc-danger);
+	border-color: rgba(220, 38, 38, 0.4);
+}
+
+.efc-kpi-main {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.efc-kpi-value {
+	font-family: var(--efc-font-display);
+	font-size: 26px;
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.01em;
+	color: var(--efc-ink);
+}
+
+.efc-kpi-sub {
+	font-family: var(--efc-font-mono);
+	font-size: 11.5px;
+	color: var(--efc-ink-2);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.efc-wan-rates {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.efc-wan-rate-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	font-family: var(--efc-font-mono);
+}
+
+.efc-wan-dir {
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.efc-wan-dir--rx { color: var(--efc-rx); }
+.efc-wan-dir--tx { color: var(--efc-tx); }
+
+.efc-wan-num {
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--efc-ink);
+}
+
+.efc-spark-wrap {
+	width: 100%;
+	height: 40px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-surface);
+	overflow: hidden;
+}
+
+.efc-spark-svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.efc-node-split {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	padding-top: 6px;
+	border-top: 1px dashed var(--efc-border);
+}
+
+.efc-node-stat {
+	display: flex;
+	flex-direction: column;
+}
+
+.efc-node-stat span:first-child {
+	font-family: var(--efc-font-mono);
+	font-size: 10px;
+	color: var(--efc-ink-muted);
+	letter-spacing: 0.06em;
+}
+
+.efc-node-stat span:last-child {
+	font-family: var(--efc-font-mono);
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--efc-ink);
+}
+
+/* ---------- 3. Physical Ports & Logical Interfaces ---------- */
+.efc-ports-strip {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+	gap: 10px;
+	margin-bottom: 16px;
+}
+
+.efc-port-card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 11px 12px;
+	background: var(--efc-surface);
+	border: 1px solid var(--efc-border);
+	transition: border-color 0.14s ease;
+}
+
+.efc-port-card.is-up {
+	border-top: 2px solid var(--efc-success);
+}
+
+.efc-port-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.efc-port-id {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--efc-font-mono);
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--efc-ink);
+}
+
+.efc-port-led {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--efc-ink-muted);
+	opacity: 0.45;
+}
+
+.efc-port-card.is-up .efc-port-led {
+	background: var(--efc-success);
+	opacity: 1;
+	box-shadow: 0 0 6px rgba(14, 159, 110, 0.55);
+}
+
+.efc-port-role {
+	font-family: var(--efc-font-mono);
+	font-size: 10px;
+	font-weight: 700;
+	padding: 1px 6px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-card);
+	color: var(--efc-ink-2);
+}
+
+.efc-port-role[data-role="WAN"] {
+	background: var(--efc-yellow);
+	border-color: var(--efc-yellow);
+	color: var(--efc-yellow-ink);
+}
+
+.efc-port-visual {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.efc-rj45-svg {
+	width: 34px;
+	height: 28px;
+	flex-shrink: 0;
+	color: var(--efc-ink-muted);
+}
+
+.efc-port-card.is-up .efc-rj45-svg {
+	color: var(--efc-ink);
+}
+
+.efc-port-speed {
+	font-family: var(--efc-font-mono);
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--efc-ink);
+}
+
+.efc-port-card:not(.is-up) .efc-port-speed {
+	color: var(--efc-ink-muted);
+}
+
+.efc-port-bytes {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	margin-top: 2px;
+	font-family: var(--efc-font-mono);
+	font-size: 10.5px;
+	line-height: 1.35;
+	color: var(--efc-ink-muted);
+}
+
+.efc-port-byte-row {
+	display: block;
+	white-space: nowrap;
+}
+
+.efc-ifaces-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	gap: 10px;
+}
+
+.efc-iface-card {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	padding: 11px 13px;
+	background: var(--efc-surface);
+	border: 1px solid var(--efc-border);
+	border-left: 3px solid var(--efc-border-strong);
+}
+
+.efc-iface-card.is-up {
+	border-left-color: var(--efc-success);
+}
+
+.efc-iface-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.efc-iface-name {
+	font-family: var(--efc-font-mono);
+	font-size: 12.5px;
+	font-weight: 800;
+	color: var(--efc-ink);
+	text-transform: uppercase;
+}
+
+.efc-iface-badges {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.efc-tag {
+	font-family: var(--efc-font-mono);
+	font-size: 10px;
+	font-weight: 700;
+	padding: 1px 6px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-card);
+	color: var(--efc-ink-2);
+	text-transform: uppercase;
+}
+
+.efc-tag--up {
+	color: var(--efc-success);
+	border-color: rgba(14, 159, 110, 0.35);
+}
+
+.efc-tag--down {
+	color: var(--efc-ink-muted);
+}
+
+.efc-iface-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	font-family: var(--efc-font-mono);
+	font-size: 11.5px;
+}
+
+.efc-iface-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.efc-iface-row-k {
+	color: var(--efc-ink-muted);
+	flex-shrink: 0;
+}
+
+.efc-iface-row-v {
+	color: var(--efc-ink);
+	text-align: right;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ---------- 4. 2-Column Dock (Services + Storage) ---------- */
+.efc-two-col {
+	display: grid;
+	grid-template-columns: 1.25fr 1fr;
+	gap: 16px;
+	align-items: stretch;
+}
+
+.efc-apps-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+	gap: 9px;
+}
+
+.efc-app-card {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 11px 12px;
+	background: var(--efc-surface);
+	border: 1px solid var(--efc-border);
+	border-left: 3px solid var(--efc-border-strong);
+	color: var(--efc-ink) !important;
+	text-decoration: none !important;
+	transition: border-color 0.14s ease, background-color 0.14s ease, transform 0.14s ease;
+}
+
+.efc-app-card:hover {
+	border-color: var(--efc-ink-muted);
+	border-left-color: var(--efc-yellow);
+	background: var(--efc-card);
+	text-decoration: none !important;
+	transform: translateY(-1px);
+}
+
+.efc-app-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+}
+
+.efc-app-cat {
+	font-family: var(--efc-font-mono);
+	font-size: 9.5px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--efc-ink-muted);
+	text-transform: uppercase;
+}
+
+.efc-app-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-family: var(--efc-font-mono);
+	font-size: 9.5px;
+	font-weight: 700;
+	padding: 1px 6px;
+	border: 1px solid var(--efc-border);
+	background: var(--efc-card);
+	color: var(--efc-ink-muted);
+}
+
+.efc-app-status[data-state="running"] {
+	color: var(--efc-success);
+	border-color: rgba(14, 159, 110, 0.38);
+}
+
+.efc-app-status[data-state="stopped"],
+.efc-app-status[data-state="standby"] {
+	color: var(--efc-warn);
+	border-color: rgba(217, 119, 6, 0.38);
+}
+
+.efc-app-status[data-state="enabled"] {
+	color: var(--efc-cyan);
+	border-color: rgba(0, 158, 140, 0.35);
+}
+
+.efc-app-status[data-state="disabled"] {
+	color: var(--efc-ink-muted);
+}
+
+.efc-app-name-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+}
+
+.efc-app-name {
+	font-family: var(--efc-font-display);
+	font-size: 13.5px;
+	font-weight: 700;
+	color: var(--efc-ink);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.efc-app-arrow {
+	font-family: var(--efc-font-mono);
+	font-size: 12px;
+	color: var(--efc-ink-muted);
+	flex-shrink: 0;
+}
+
+.efc-mounts-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.efc-mount-item {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px 12px;
+	background: var(--efc-surface);
+	border: 1px solid var(--efc-border);
+}
+
+.efc-mount-top {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.efc-mount-path {
+	font-family: var(--efc-font-mono);
+	font-size: 12.5px;
+	font-weight: 700;
+	color: var(--efc-ink);
+}
+
+.efc-mount-dev {
+	font-family: var(--efc-font-mono);
+	font-size: 10.5px;
+	color: var(--efc-ink-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.efc-mount-stats {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-family: var(--efc-font-mono);
+	font-size: 11px;
+	color: var(--efc-ink-2);
+}
+
+/* ---------- 5. Active LAN Clients Table ---------- */
+.efc-clients-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.ef-console .efc-filter-btn {
+	display: inline-flex;
+	align-items: center;
+	height: 30px;
+	padding: 0 10px;
+	cursor: pointer;
+	background: var(--efc-surface);
+	border: 1px solid var(--efc-border);
+	border-radius: 0;
+	font-family: var(--efc-font-mono);
+	font-size: 10.5px;
+	font-weight: 700;
+	color: var(--efc-ink-2);
+	white-space: nowrap;
+}
+
+.ef-console .efc-filter-btn:hover {
+	border-color: var(--efc-ink-muted);
+	color: var(--efc-ink);
+}
+
+.ef-console .efc-search-input {
+	width: 240px;
+	max-width: 100%;
+	height: 30px;
+	padding: 0 10px;
+	background: var(--efc-surface);
+	border: 1px solid var(--efc-border);
+	color: var(--efc-ink);
+	font-family: var(--efc-font-mono);
+	font-size: 12px;
+	outline: none;
+	border-radius: 0;
+}
+
+.ef-console .efc-search-input:focus {
+	border-color: var(--efc-yellow);
+	box-shadow: inset 2px 0 0 var(--efc-yellow);
+}
+
+.efc-table-wrap {
+	width: 100%;
+	overflow-x: auto;
+	border: 1px solid var(--efc-border);
+}
+
+.efc-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 12.5px;
+}
+
+.efc-table th {
+	padding: 8px 12px;
+	background: var(--efc-surface);
+	border-bottom: 1px solid var(--efc-border);
+	text-align: left;
+	font-family: var(--efc-font-mono);
+	font-size: 10.5px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--efc-ink-muted);
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.efc-table td {
+	padding: 8px 12px;
+	border-top: 1px solid var(--efc-border);
+	color: var(--efc-ink);
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+.efc-table tbody tr:hover td {
+	background: var(--efc-surface);
+}
+
+.efc-empty {
+	padding: 20px;
+	text-align: center;
+	font-family: var(--efc-font-mono);
+	font-size: 12px;
+	color: var(--efc-ink-muted);
+	background: var(--efc-surface);
+	border: 1px dashed var(--efc-border);
+}
+
+/* ---------- Responsive Breakpoints ---------- */
+@media (max-width: 1180px) {
+	.efc-kpi-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.efc-spec-chips {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.efc-spec-chip:nth-child(2) {
+		border-right: none;
+	}
+	.efc-spec-chip:nth-child(1),
+	.efc-spec-chip:nth-child(2) {
+		border-bottom: 1px solid var(--efc-border);
+	}
+	.efc-two-col {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 680px) {
+	.efc-hero {
+		padding: 16px 14px;
+	}
+	.efc-hostname {
+		font-size: 22px;
+	}
+	.efc-hero-watermark {
+		display: none;
+	}
+	.efc-kpi-grid,
+	.efc-spec-chips {
+		grid-template-columns: 1fr;
+	}
+	.efc-spec-chip {
+		border-right: none;
+		border-bottom: 1px solid var(--efc-border);
+	}
+	.efc-spec-chip:last-child {
+		border-bottom: none;
+	}
+	.efc-search-input {
+		width: 100%;
+	}
+}

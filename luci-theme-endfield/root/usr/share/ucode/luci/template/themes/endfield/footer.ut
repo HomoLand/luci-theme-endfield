@@ -1,0 +1,39 @@
+		{% if (!blank_page): %}
+				</div>
+				<footer class="ef-footer">
+					<span>
+						Powered by
+						<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">{{ version.luciname }} ({{ version.luciversion }})</a>
+						/
+						<a href="{{ entityencode(version.disturl ?? '#', true) }}" target="_blank" rel="noreferrer">{{ version.distname }} {{ version.distversion }} ({{ version.distrevision }})</a>
+						{% if (lua_active): %}
+							/ {{ _('Lua compatibility mode active') }}
+						{% endif %}
+					</span>
+					<ul class="breadcrumb pull-right" id="modemenu" style="display:none"></ul>
+				</footer>
+			</div>
+		</div>
+
+		<div class="ef-cmd-backdrop" id="ef-cmd-backdrop" role="dialog" aria-modal="true" aria-label="Quick Jump">
+			<div class="ef-cmd-modal">
+				<div class="ef-cmd-input-row">
+					<span class="ef-cmd-prefix">↘ CMD</span>
+					<input type="text" class="ef-cmd-input" id="ef-cmd-input" autocomplete="off" placeholder="{{ _('Search menu or action…') }}">
+					<span class="ef-kbd">ESC</span>
+				</div>
+				<div class="ef-cmd-list" id="ef-cmd-list"></div>
+				<div class="ef-cmd-footer">
+					<span>↑↓ · ENTER · ESC</span>
+					<span class="ef-cmd-footer-brand">
+						<span class="ef-dot-matrix" aria-hidden="true"></span>
+						<span>ENDFIELD // QUICK JUMP</span>
+					</span>
+				</div>
+			</div>
+		</div>
+
+		<script>L.require('menu-endfield')</script>
+		{% endif %}
+	</body>
+</html>
