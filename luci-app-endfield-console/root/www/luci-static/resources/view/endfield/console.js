@@ -292,7 +292,7 @@ function ensureConsoleStylesheet() {
 		return;
 	var link = document.createElement('link');
 	link.rel = 'stylesheet';
-	link.href = '/luci-static/endfield/console.css?v=25.12-ef31';
+	link.href = '/luci-static/endfield/console.css?v=25.12-ef32';
 	link.setAttribute('data-ef-console-css', '1');
 	document.head.appendChild(link);
 }

@@ -1,11 +1,11 @@
 		{% if (!blank_page): %}
 				</div>
 				<footer class="ef-footer">
-					<span>
+					<span class="ef-footer-credits">
 						Powered by
-						<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">{{ version.luciname }} ({{ version.luciversion }})</a>
+						<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer" title="{{ entityencode(`${version.luciname ?? 'LuCI'} (${version.luciversion ?? ''})`, true) }}">LuCI</a>
 						/
-						<a href="{{ entityencode(version.disturl ?? '#', true) }}" target="_blank" rel="noreferrer">{{ version.distname }} {{ version.distversion }} ({{ version.distrevision }})</a>
+						<a href="{{ entityencode(version.disturl ?? '#', true) }}" target="_blank" rel="noreferrer" title="{{ entityencode(`${version.distname ?? 'OpenWrt'} ${version.distversion ?? ''} (${version.distrevision ?? ''})`, true) }}">{{ version.distname }} {{ version.distversion }}</a>
 						{% if (lua_active): %}
 							/ {{ _('Lua compatibility mode active') }}
 						{% endif %}
