@@ -1,5 +1,18 @@
 /* luci-theme-endfield mobile overrides (<= 860px) */
 @media only screen and (max-width: 860px) {
+	body {
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+	.ef-header-actions {
+		gap: 5px;
+	}
+	.ef-cmd-trigger,
+	.ef-mode-toggle {
+		height: 28px;
+		padding: 0 7px;
+		font-size: 10.5px;
+	}
 	.table {
 		display: block;
 		overflow-x: auto;
@@ -23,5 +36,19 @@
 	}
 	.ef-login-screen {
 		padding: 16px;
+	}
+	.ef-login-form input[type="text"],
+	.ef-login-form input[type="password"] {
+		font-size: 16px;
+	}
+}
+
+@media only screen and (max-width: 520px) {
+	.ef-crumb-path {
+		display: none;
+	}
+	.ef-crumb-tag {
+		font-size: 10.5px;
+		padding: 2px 7px;
 	}
 }

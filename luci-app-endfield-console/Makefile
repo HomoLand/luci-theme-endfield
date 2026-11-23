@@ -4,7 +4,7 @@ LUCI_TITLE:=Endfield Command Console for LuCI 25.12
 LUCI_DESCRIPTION:=Universal ubus-driven gateway command console companion for LuCI 25.12
 LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
-PKG_VERSION:=0.3.0
+PKG_VERSION:=0.3.1
 PKG_RELEASE:=1
 PKG_LICENSE:=Apache-2.0
 

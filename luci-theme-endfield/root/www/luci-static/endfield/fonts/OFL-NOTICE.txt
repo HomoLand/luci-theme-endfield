@@ -1,0 +1,15 @@
+Bundled Self-Hosted Fonts — License Notice
+==========================================
+
+To guarantee consistent industrial display and monospace typography offline
+across iOS Safari, Android, macOS, Windows, and Linux (without external CDNs),
+luci-theme-endfield bundles Latin-subsetted WOFF2 files from two open-source
+typefaces licensed under the SIL Open Font License, Version 1.1 (OFL-1.1):
+
+1. Chakra Petch (600 SemiBold, 700 Bold — Latin subset)
+   Copyright (c) 2018 The Chakra Petch Project Authors (Cadson Demak)
+   License: SIL Open Font License 1.1 (https://scripts.sil.org/OFL)
+
+2. JetBrains Mono (500 Medium, 700 Bold — Latin subset)
+   Copyright (c) 2020 JetBrains s.r.o.
+   License: SIL Open Font License 1.1 (https://scripts.sil.org/OFL)

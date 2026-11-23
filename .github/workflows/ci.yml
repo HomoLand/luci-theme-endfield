@@ -38,6 +38,8 @@ jobs:
           for p in sorted(pathlib.Path(".").rglob("*")):
               if ".git" in p.parts or not p.is_file():
                   continue
+              if p.suffix.lower() in {".woff2", ".woff", ".ttf", ".otf", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".gz", ".apk"}:
+                  continue
               data = p.read_bytes()
               if b"\x00" in data:
                   continue
@@ -157,6 +159,8 @@ jobs:
           test -L "$STAGE_TMP/full/www/luci-static/endfield-dark"
           test -L "$STAGE_TMP/full/www/luci-static/endfield-light"
           test -f "$STAGE_TMP/full/www/luci-static/endfield/cascade.css"
+          test -f "$STAGE_TMP/full/www/luci-static/endfield/fonts/chakra-petch-700.woff2"
+          test -f "$STAGE_TMP/full/www/luci-static/endfield/fonts/jetbrains-mono-500.woff2"
           test -f "$STAGE_TMP/full/www/luci-static/endfield/console.css"
           test -f "$STAGE_TMP/full/www/luci-static/resources/view/endfield/console.js"
           test -f "$STAGE_TMP/full/usr/share/luci/menu.d/luci-app-endfield-console.json"

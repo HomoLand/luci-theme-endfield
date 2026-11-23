@@ -23,8 +23,8 @@
 	--efc-tx: #C98A00;
 	--efc-cpu-stroke: #191919;
 	--efc-cpu-fill: #FFE600;
-	--efc-font-display: var(--font-display, "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif);
-	--efc-font-mono: var(--font-mono, "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, ui-monospace, monospace);
+	--efc-font-display: var(--font-display, "Endfield Display", "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "PingFang SC", "Microsoft YaHei UI", sans-serif);
+	--efc-font-mono: var(--font-mono, "Endfield Mono", "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, ui-monospace, monospace);
 	--efc-hatch: repeating-linear-gradient(
 		-45deg,
 		rgba(25, 25, 25, 0.04) 0px,
@@ -112,6 +112,8 @@
 	letter-spacing: 0.08em;
 	color: var(--efc-ink-muted);
 	text-transform: uppercase;
+	white-space: nowrap;
+	flex-shrink: 0;
 }
 
 .efc-panel-title {
@@ -1211,27 +1213,113 @@
 }
 
 @media (max-width: 680px) {
+	.ef-console {
+		gap: 12px;
+		-webkit-font-smoothing: antialiased;
+	}
+	.efc-panel {
+		padding: 13px 12px;
+	}
 	.efc-hero {
-		padding: 16px 14px;
+		padding: 15px 13px 14px;
 	}
 	.efc-hostname {
 		font-size: 22px;
 	}
-	.efc-hero-watermark {
-		display: none;
+	.efc-hero-reticle {
+		width: 118px;
+		height: 118px;
+		top: -14px;
+		right: -8px;
 	}
-	.efc-kpi-grid,
+	.efc-hero-watermark {
+		display: block;
+		font-size: 34px;
+		bottom: -4px;
+		right: 10px;
+		opacity: 0.44;
+	}
+	.efc-hero-pills {
+		gap: 6px;
+	}
+	.efc-sector-pill,
+	.efc-poll-pill {
+		font-size: 10px;
+		padding: 3px 8px;
+	}
 	.efc-spec-chips {
-		grid-template-columns: 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		margin-top: 12px;
 	}
 	.efc-spec-chip {
+		padding: 8px 10px;
+	}
+	.efc-spec-chip:nth-child(2),
+	.efc-spec-chip:nth-child(4) {
 		border-right: none;
+	}
+	.efc-spec-chip:nth-child(1),
+	.efc-spec-chip:nth-child(2) {
 		border-bottom: 1px solid var(--efc-border);
 	}
-	.efc-spec-chip:last-child {
-		border-bottom: none;
+	.efc-spec-value {
+		font-size: 11px;
 	}
-	.efc-search-input {
+	.efc-op-btn {
+		padding: 5px 10px;
+		font-size: 11px;
+	}
+	.efc-kpi-grid {
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
+	.efc-kpi-card {
+		padding: 12px 13px;
+		gap: 8px;
+	}
+	.efc-kpi-value {
+		font-size: 23px;
+	}
+	.efc-ports-strip {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+	.efc-port-card {
+		padding: 9px 10px;
+		gap: 6px;
+	}
+	.efc-port-visual {
+		gap: 7px;
+	}
+	.efc-rj45-svg {
+		width: 26px;
+		height: 22px;
+	}
+	.efc-port-speed {
+		font-size: 12px;
+	}
+	.efc-port-bytes {
+		font-size: 10px;
+	}
+	.efc-ifaces-grid {
+		grid-template-columns: 1fr;
+		gap: 8px;
+	}
+	.efc-apps-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+	}
+	.efc-app-card {
+		padding: 9px 10px;
+		gap: 6px;
+	}
+	.efc-app-name {
+		font-size: 12.5px;
+	}
+	.ef-console .efc-search-input {
 		width: 100%;
+		font-size: 16px;
+		height: 34px;
 	}
 }

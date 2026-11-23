@@ -114,8 +114,14 @@ if [ "$STAGE_THEME" = 1 ]; then
 	ln -snf endfield "$DEST/usr/share/ucode/luci/template/themes/endfield-dark"
 	ln -snf endfield "$DEST/usr/share/ucode/luci/template/themes/endfield-light"
 
-	cp -f "$THEME_ROOT/www/luci-static/endfield/"* "$DEST/www/luci-static/endfield/"
-	chmod 0644 "$DEST/www/luci-static/endfield/"*
+	cp -f "$THEME_ROOT/www/luci-static/endfield/"*.css "$THEME_ROOT/www/luci-static/endfield/"*.svg "$DEST/www/luci-static/endfield/"
+	chmod 0644 "$DEST/www/luci-static/endfield/"*.css "$DEST/www/luci-static/endfield/"*.svg
+	if [ -d "$THEME_ROOT/www/luci-static/endfield/fonts" ]; then
+		mkdir -p "$DEST/www/luci-static/endfield/fonts"
+		cp -f "$THEME_ROOT/www/luci-static/endfield/fonts/"* "$DEST/www/luci-static/endfield/fonts/"
+		chmod 0755 "$DEST/www/luci-static/endfield/fonts"
+		chmod 0644 "$DEST/www/luci-static/endfield/fonts/"*
+	fi
 	ln -snf endfield "$DEST/www/luci-static/endfield-dark"
 	ln -snf endfield "$DEST/www/luci-static/endfield-light"
 

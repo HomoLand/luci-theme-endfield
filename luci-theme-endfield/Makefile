@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=Endfield Industrial Theme for LuCI 25.12
 LUCI_PKGARCH:=all
-PKG_VERSION:=0.3.0
+PKG_VERSION:=0.3.1
 PKG_RELEASE:=1
 PKG_LICENSE:=Apache-2.0
 

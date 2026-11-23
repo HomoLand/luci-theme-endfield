@@ -5,10 +5,47 @@
  * Includes full OpenClash .oc CSS bridge and verified LuCI 25.12 layout contracts.
  * ============================================================================ */
 
+/* Self-hosted SIL OFL 1.1 Latin+Symbol Webfonts (offline LAN safe, iOS Safari parity) */
+@font-face {
+	font-family: "Endfield Display";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("./fonts/chakra-petch-600.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+
+@font-face {
+	font-family: "Endfield Display";
+	font-style: normal;
+	font-weight: 700 800;
+	font-display: swap;
+	src: url("./fonts/chakra-petch-700.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+
+@font-face {
+	font-family: "Endfield Mono";
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url("./fonts/jetbrains-mono-500.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+
+@font-face {
+	font-family: "Endfield Mono";
+	font-style: normal;
+	font-weight: 600 800;
+	font-display: swap;
+	src: url("./fonts/jetbrains-mono-700.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+
 :root {
-	--font-display: "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+	--font-display: "Endfield Display", "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "PingFang SC", "Microsoft YaHei UI", sans-serif;
 	--font-sans: "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", system-ui, -apple-system, sans-serif;
-	--font-mono: "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
+	--font-mono: "Endfield Mono", "Cascadia Mono", "JetBrains Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
 
 	/* --- Gallery Architectural White (Light Mode — Official Primary Identity) --- */
 	--ef-bg: #F6F7F9;
@@ -2622,6 +2659,7 @@ footer.ef-footer {
 
 @media (max-width: 860px) {
 	.ef-sidebar { transform: translateX(-100%); width: var(--ef-sidebar-w) !important; }
+	.ef-sidebar-footer { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
 	.ef-shell.mobile-drawer-open .ef-sidebar { transform: translateX(0); }
 	.ef-shell.mobile-drawer-open .ef-drawer-backdrop { display: block; }
 	.ef-main { margin-left: 0 !important; }
@@ -2629,7 +2667,17 @@ footer.ef-footer {
 	.ef-header-actions .ef-header-mobile-only { display: inline-flex; }
 	.ef-header-sector { display: none; }
 	.ef-header-dots { display: none; }
-	header.ef-header { padding: 0 12px; }
-	#maincontent.container { padding: 14px 12px 28px; }
+	header.ef-header { padding: 0 10px; gap: 8px; }
+	header.ef-header::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--ef-spectrum);
+		pointer-events: none;
+	}
+	#maincontent.container { padding: 12px 10px calc(26px + env(safe-area-inset-bottom, 0px)); }
 	.cbi-value label.cbi-value-title { flex: 0 0 100%; text-align: left; padding: 0 0 5px; }
 }

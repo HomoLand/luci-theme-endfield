@@ -54,10 +54,12 @@
 				}
 			})();
 		</script>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 		<meta name="darkreader-lock">
-		<link rel="stylesheet" href="{{ media }}/cascade.css?v=25.12-ef30">
-		<link rel="stylesheet" media="only screen and (max-width: 860px)" href="{{ media }}/mobile.css?v=25.12-ef30">
+		<link rel="preload" href="{{ media }}/fonts/chakra-petch-700.woff2" as="font" type="font/woff2" crossorigin>
+		<link rel="preload" href="{{ media }}/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin>
+		<link rel="stylesheet" href="{{ media }}/cascade.css?v=25.12-ef31">
+		<link rel="stylesheet" media="only screen and (max-width: 860px)" href="{{ media }}/mobile.css?v=25.12-ef31">
 		<link rel="icon" href="{{ media }}/logo.svg" type="image/svg+xml" sizes="any">
 		{% if (node?.css): %}
 		<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">
@@ -66,7 +68,7 @@
 		<style title="text/css">{{ css }}</style>
 		{% endif %}
 		<script src="{{ dispatcher.build_url('admin/translations', dispatcher.lang) }}"></script>
-		<script src="{{ resource }}/cbi.js?v=25.12-ef30"></script>
+		<script src="{{ resource }}/cbi.js?v=25.12-ef31"></script>
 	</head>
 
 	<body class="lang_{{ dispatcher.lang }} {{ entityencode(striptags(node?.title ?? ''), true) }}" data-page="{{ entityencode(join('-', ctx.request_path), true) }}">
