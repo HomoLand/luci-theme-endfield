@@ -221,13 +221,15 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           TAG="${{ steps.prep.outputs.tag }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-upload/* --clobber
+          if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-upload/* --repo "$GH_REPO" --clobber
           else
             gh release create "$TAG" release-upload/* \
+              --repo "$GH_REPO" \
               --title "luci-theme-endfield ${TAG}" \
               --notes "Standalone release bundles for \`luci-theme-endfield\` and \`luci-app-endfield-console\` (OpenWrt / ImmortalWrt 25.12)." \
               --latest
